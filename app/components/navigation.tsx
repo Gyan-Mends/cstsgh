@@ -15,7 +15,7 @@ export default function Navigation() {
         { name: "Trainings", path: "/trainings" },
         { name: "Corporate Services", path: "/corporate-services" },
         { name: "Gallery", path: "/gallery" },
-        { name: "Directors' Bank", path: "/directors'-bank" },
+        { name: "Directors' Bank", path: "/directors-bank" },
         { name: "Blog", path: "/blog" },
         { name: "Contact", path: "/contact" },
     ]
