@@ -21,9 +21,16 @@ export default function ContactPage() {
         setLoading(true);
 
         try {
-            const response = await axios.post('/api/contact', formData, {
+            // Convert form data to URLSearchParams for application/x-www-form-urlencoded
+            const formDataEncoded = new URLSearchParams();
+            formDataEncoded.append('fullname', formData.fullname);
+            formDataEncoded.append('email', formData.email);
+            formDataEncoded.append('phone', formData.phone);
+            formDataEncoded.append('message', formData.message);
+
+            const response = await axios.post('/api/contact', formDataEncoded, {
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/x-www-form-urlencoded',
                 }
             });
             
