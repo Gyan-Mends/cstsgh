@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Search, Eye, Tag } from "lucide-react";
 import Drawer from "~/components/Drawer";
+import CustomInput from "~/components/CustomInput";
 import type { CategoryInterface, UsersInterface } from "~/components/interface";
 
 export const meta = () => {
@@ -163,18 +164,16 @@ const Categories = () => {
 
   const CategoryForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Category Name
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
+      <CustomInput
+        label="Category Name"
+        type="text"
+        isRequired={true}
+        name="name"
+        placeholder="Enter category name"
+        value={formData.name}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+        endContent={<Tag size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -262,14 +261,13 @@ const Categories = () => {
 
       {/* Search */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1 relative">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
+        <div className="flex-1">
+          <CustomInput
             type="text"
             placeholder="Search categories..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            endContent={<Search className="text-gray-400 w-5 h-5" />}
           />
         </div>
       </div>

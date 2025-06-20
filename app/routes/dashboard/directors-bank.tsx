@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Users } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, Users, User, Mail, Phone, Briefcase, Award } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import DataTable from "~/components/DataTable";
-import type { Director } from "~/components/interface";
+import CustomInput from "~/components/CustomInput";
+import type { DirectorInterface } from "~/components/interface";
 
 export const meta = () => {
   return [
@@ -12,7 +13,7 @@ export const meta = () => {
 };
 
 const DirectorsBank = () => {
-  const [directors, setDirectors] = useState<Director[]>([]);
+  const [directors, setDirectors] = useState<DirectorInterface[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   
@@ -20,7 +21,7 @@ const DirectorsBank = () => {
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
-  const [selectedDirector, setSelectedDirector] = useState<Director | null>(null);
+  const [selectedDirector, setSelectedDirector] = useState<DirectorInterface | null>(null);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -29,9 +30,12 @@ const DirectorsBank = () => {
     bio: "",
     image: "",
     areasOfExpertise: [] as string[],
+    email: "",
+    phone: "",
   });
 
   const [newExpertiseArea, setNewExpertiseArea] = useState("");
+  const [searchTerm, setSearchTerm] = useState("");
 
   // Fetch directors
   const fetchDirectors = async () => {
@@ -67,6 +71,8 @@ const DirectorsBank = () => {
       form.append("bio", formData.bio);
       form.append("image", formData.image);
       form.append("areasOfExpertise", JSON.stringify(formData.areasOfExpertise));
+      form.append("email", formData.email);
+      form.append("phone", formData.phone);
       
       if (action === "edit" && selectedDirector) {
         form.append("_method", "PUT");
@@ -94,7 +100,7 @@ const DirectorsBank = () => {
   };
 
   // Handle delete
-  const handleDelete = async (director: Director) => {
+  const handleDelete = async (director: DirectorInterface) => {
     if (!confirm("Are you sure you want to delete this director?")) return;
     
     try {
@@ -127,13 +133,15 @@ const DirectorsBank = () => {
       bio: "",
       image: "",
       areasOfExpertise: [],
+      email: "",
+      phone: "",
     });
     setNewExpertiseArea("");
     setSelectedDirector(null);
   };
 
   // Open edit drawer
-  const openEditDrawer = (director: Director) => {
+  const openEditDrawer = (director: DirectorInterface) => {
     setSelectedDirector(director);
     setFormData({
       name: director.name,
@@ -141,12 +149,14 @@ const DirectorsBank = () => {
       bio: director.bio,
       image: director.image,
       areasOfExpertise: director.areasOfExpertise || [],
+      email: director.email || "",
+      phone: director.phone || "",
     });
     setIsEditDrawerOpen(true);
   };
 
   // Open view drawer
-  const openViewDrawer = (director: Director) => {
+  const openViewDrawer = (director: DirectorInterface) => {
     setSelectedDirector(director);
     setIsViewDrawerOpen(true);
   };
@@ -175,15 +185,19 @@ const DirectorsBank = () => {
     {
       key: "image",
       title: "Photo",
-      render: (value: string, director: Director) => (
+      render: (value: string, director: DirectorInterface) => (
         <div className="flex items-center">
-          <div className="w-10 h-10 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
-            {value ? (
-              <img src={value} alt={director.name} className="w-full h-full object-cover" />
+          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center">
+            {director.image ? (
+              <img 
+                src={director.image} 
+                alt={director.name}
+                className="h-10 w-10 rounded-full object-cover"
+              />
             ) : (
-              <div className="w-full h-full flex items-center justify-center">
-                <Users size={16} className="text-gray-400" />
-              </div>
+              <span className="text-white font-medium text-sm">
+                {director.name.charAt(0).toUpperCase()}
+              </span>
             )}
           </div>
         </div>
@@ -251,31 +265,49 @@ const DirectorsBank = () => {
 
   const DirectorForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Full Name
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
+      <CustomInput
+        label="Director Name"
+        type="text"
+        isRequired={true}
+        name="name"
+        placeholder="Enter director name"
+        value={formData.name}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+        endContent={<User size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Position
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.position}
-          onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
+      <CustomInput
+        label="Position"
+        type="text"
+        isRequired={true}
+        name="position"
+        placeholder="Enter position"
+        value={formData.position}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, position: e.target.value })}
+        endContent={<Briefcase size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
+
+      <CustomInput
+        label="Email"
+        type="email"
+        isRequired={true}
+        name="email"
+        placeholder="Enter email address"
+        value={formData.email}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, email: e.target.value })}
+        endContent={<Mail size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
+
+      <CustomInput
+        label="Phone"
+        type="tel"
+        isRequired={true}
+        name="phone"
+        placeholder="Enter phone number"
+        value={formData.phone}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, phone: e.target.value })}
+        endContent={<Phone size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -292,55 +324,19 @@ const DirectorsBank = () => {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Profile Image URL
+          Areas of Expertise (comma-separated)
         </label>
-        <input
-          type="url"
+        <textarea
           required
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
+          rows={3}
+          value={formData.areasOfExpertise.join(", ")}
+          onChange={(e) => setFormData({ 
+            ...formData, 
+            areasOfExpertise: e.target.value.split(",").map(area => area.trim()).filter(area => area.length > 0)
+          })}
+          placeholder="e.g., Leadership, Strategy, Finance"
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Areas of Expertise
-        </label>
-        <div className="flex space-x-2 mb-3">
-          <input
-            type="text"
-            value={newExpertiseArea}
-            onChange={(e) => setNewExpertiseArea(e.target.value)}
-            placeholder="Add expertise area"
-            className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-            onKeyPress={(e) => e.key === 'Enter' && (e.preventDefault(), addExpertiseArea())}
-          />
-          <button
-            type="button"
-            onClick={addExpertiseArea}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-          >
-            Add
-          </button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {formData.areasOfExpertise.map((area, index) => (
-            <span
-              key={index}
-              className="inline-flex items-center px-3 py-1 text-sm bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400 rounded-full"
-            >
-              {area}
-              <button
-                type="button"
-                onClick={() => removeExpertiseArea(area)}
-                className="ml-2 hover:text-red-600"
-              >
-                ×
-              </button>
-            </span>
-          ))}
-        </div>
       </div>
 
       <div className="flex justify-end space-x-3">
@@ -386,6 +382,19 @@ const DirectorsBank = () => {
           <Plus size={20} className="mr-2" />
           Add Director
         </button>
+      </div>
+
+      {/* Search */}
+      <div className="flex items-center space-x-4">
+        <div className="flex-1">
+          <CustomInput
+            type="text"
+            placeholder="Search directors..."
+            value={searchTerm}
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            endContent={<Search className="text-gray-400 w-5 h-5" />}
+          />
+        </div>
       </div>
 
       {/* Data Table */}

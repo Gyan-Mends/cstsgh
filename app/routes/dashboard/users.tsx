@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Eye } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, User, Mail, Phone, Briefcase, Lock, ImageIcon } from "lucide-react";
 import Drawer from "~/components/Drawer";
+import CustomInput from "~/components/CustomInput";
 import type { UsersInterface } from "~/components/interface";
+import { Button, Select, SelectItem } from "@heroui/react";
 
 export const meta = () => {
   return [
@@ -141,7 +143,7 @@ const Users = () => {
       position: user.position,
       role: user.role || "admin",
       password: "",
-      image: user.image || "",
+      image: typeof user.image === 'string' ? user.image : "",
     });
     setIsEditDrawerOpen(true);
   };
@@ -159,120 +161,7 @@ const Users = () => {
     user.position.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const UserForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Full Name
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.fullName}
-          onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
 
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Email
-        </label>
-        <input
-          type="email"
-          required
-          value={formData.email}
-          onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Phone
-        </label>
-        <input
-          type="tel"
-          required
-          value={formData.phone}
-          onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Position
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.position}
-          onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Role
-        </label>
-        <select
-          value={formData.role}
-          onChange={(e) => setFormData({ ...formData, role: e.target.value as "admin" | "staff" })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        >
-          <option value="admin">Admin</option>
-          <option value="staff">Staff</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          {isEdit ? "New Password (leave blank to keep current)" : "Password"}
-        </label>
-        <input
-          type="password"
-          required={!isEdit}
-          value={formData.password}
-          onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Profile Image URL
-        </label>
-        <input
-          type="url"
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={() => {
-            resetForm();
-            setIsCreateDrawerOpen(false);
-            setIsEditDrawerOpen(false);
-          }}
-          className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          {isEdit ? "Update User" : "Create User"}
-        </button>
-      </div>
-    </form>
-  );
 
   if (loading) {
     return (
@@ -307,14 +196,13 @@ const Users = () => {
 
       {/* Search */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1 relative">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
+        <div className="flex-1">
+          <CustomInput
             type="text"
             placeholder="Search users..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            onChange={(e: any) => setSearchTerm(e.target.value)}
+            endContent={<Search className="text-gray-400 w-5 h-5" />}
           />
         </div>
       </div>
@@ -420,7 +308,113 @@ const Users = () => {
         title="Create New User"
         size="md"
       >
-        <UserForm />
+        <form onSubmit={(e) => handleSubmit(e, "create")} className="space-y-6">
+          <CustomInput
+            label="Full Name"
+            type="text"
+            isRequired={true}
+            name="fullName"
+            placeholder="Enter full name"
+            value={formData.fullName}
+            onChange={(e: any) => setFormData({ ...formData, fullName: e.target.value })}
+            endContent={<User size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Email"
+            type="email"
+            isRequired={true}
+            name="email"
+            placeholder="Enter email address"
+            value={formData.email}
+            onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+            endContent={<Mail size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Phone"
+            type="tel"
+            isRequired={true}
+            name="phone"
+            placeholder="Enter phone number"
+            value={formData.phone}
+            onChange={(e: any) => setFormData({ ...formData, phone: e.target.value })}
+            endContent={<Phone size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Position"
+            type="text"
+            isRequired={true}
+            name="position"
+            placeholder="Enter job position"
+            value={formData.position}
+            onChange={(e: any) => setFormData({ ...formData, position: e.target.value })}
+            endContent={<Briefcase size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <Select
+            label="Role"
+            placeholder="Select user role"
+            selectedKeys={[formData.role]}
+            onSelectionChange={(keys) => {
+              const selectedRole = Array.from(keys)[0] as "admin" | "staff";
+              setFormData({ ...formData, role: selectedRole });
+            }}
+            variant="bordered"
+            isRequired
+            classNames={{
+              label: "font-nunito text-sm !text-white",
+              trigger: "border border-white/20 bg-dashboard-secondary hover:bg-dashboard-secondary hover:border-white/20 focus-within:border-white/20",
+              value: "text-gray-400"
+            }}
+          >
+            <SelectItem key="admin" value="admin">Admin</SelectItem>
+            <SelectItem key="staff" value="staff">Staff</SelectItem>
+          </Select>
+
+          <CustomInput
+            label="Password"
+            type="password"
+            isRequired={true}
+            name="password"
+            placeholder="Enter password"
+            value={formData.password}
+            onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+            endContent={<Lock size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Profile Image URL"
+            type="url"
+            name="image"
+            placeholder="Enter image URL (optional)"
+            value={formData.image}
+            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
+            endContent={<ImageIcon size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="flat"
+              color="default"
+              onPress={() => {
+                resetForm();
+                setIsCreateDrawerOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Create User
+            </Button>
+          </div>
+        </form>
       </Drawer>
 
       {/* Edit Drawer */}
@@ -433,7 +427,112 @@ const Users = () => {
         title="Edit User"
         size="md"
       >
-        <UserForm isEdit />
+        <form onSubmit={(e) => handleSubmit(e, "edit")} className="space-y-6">
+          <CustomInput
+            label="Full Name"
+            type="text"
+            isRequired={true}
+            name="fullName"
+            placeholder="Enter full name"
+            value={formData.fullName}
+            onChange={(e: any) => setFormData({ ...formData, fullName: e.target.value })}
+            endContent={<User size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Email"
+            type="email"
+            isRequired={true}
+            name="email"
+            placeholder="Enter email address"
+            value={formData.email}
+            onChange={(e: any) => setFormData({ ...formData, email: e.target.value })}
+            endContent={<Mail size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Phone"
+            type="tel"
+            isRequired={true}
+            name="phone"
+            placeholder="Enter phone number"
+            value={formData.phone}
+            onChange={(e: any) => setFormData({ ...formData, phone: e.target.value })}
+            endContent={<Phone size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Position"
+            type="text"
+            isRequired={true}
+            name="position"
+            placeholder="Enter job position"
+            value={formData.position}
+            onChange={(e: any) => setFormData({ ...formData, position: e.target.value })}
+            endContent={<Briefcase size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <Select
+            label="Role"
+            placeholder="Select user role"
+            selectedKeys={[formData.role]}
+            onSelectionChange={(keys) => {
+              const selectedRole = Array.from(keys)[0] as "admin" | "staff";
+              setFormData({ ...formData, role: selectedRole });
+            }}
+            variant="bordered"
+            isRequired
+            classNames={{
+              label: "font-nunito text-sm !text-white",
+              trigger: "border border-white/20 bg-dashboard-secondary hover:bg-dashboard-secondary hover:border-white/20 focus-within:border-white/20",
+              value: "text-gray-400"
+            }}
+          >
+            <SelectItem key="admin" value="admin">Admin</SelectItem>
+            <SelectItem key="staff" value="staff">Staff</SelectItem>
+          </Select>
+
+          <CustomInput
+            label="New Password (leave blank to keep current)"
+            type="password"
+            name="password"
+            placeholder="Enter new password"
+            value={formData.password}
+            onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
+            endContent={<Lock size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Profile Image URL"
+            type="url"
+            name="image"
+            placeholder="Enter image URL (optional)"
+            value={formData.image}
+            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
+            endContent={<ImageIcon size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="flat"
+              color="default"
+              onPress={() => {
+                resetForm();
+                setIsEditDrawerOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Update User
+            </Button>
+          </div>
+        </form>
       </Drawer>
 
       {/* View Drawer */}

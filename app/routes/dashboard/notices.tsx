@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Eye, FileText } from "lucide-react";
 import Drawer from "~/components/Drawer";
+import CustomInput from "~/components/CustomInput";
 import DataTable from "~/components/DataTable";
 import type { ComplianceNoticeInterface } from "~/components/interface";
 
@@ -182,18 +183,16 @@ const Notices = () => {
 
   const NoticeForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Notice Title
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
+      <CustomInput
+        label="Notice Title"
+        type="text"
+        isRequired={true}
+        name="title"
+        placeholder="Enter notice title"
+        value={formData.title}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
+        endContent={<FileText size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -201,7 +200,7 @@ const Notices = () => {
         </label>
         <textarea
           required
-          rows={6}
+          rows={4}
           value={formData.description}
           onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"

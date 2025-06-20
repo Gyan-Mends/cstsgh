@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Eye, Calendar } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, Calendar, FileText, MapPin, Image } from "lucide-react";
 import Drawer from "~/components/Drawer";
+import CustomInput from "~/components/CustomInput";
 import type { EventInterface } from "~/components/interface";
 
 export const meta = () => {
@@ -155,18 +156,16 @@ const Events = () => {
 
   const EventForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Event Title
-        </label>
-        <input
-          type="text"
-          required
-          value={formData.title}
-          onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
+      <CustomInput
+        label="Event Title"
+        type="text"
+        isRequired={true}
+        name="title"
+        placeholder="Enter event title"
+        value={formData.title}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
+        endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
@@ -182,45 +181,36 @@ const Events = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Date
-          </label>
-          <input
-            type="date"
-            required
-            value={formData.date}
-            onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
-        </div>
+        <CustomInput
+          label="Date"
+          type="date"
+          isRequired={true}
+          name="date"
+          value={formData.date}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, date: e.target.value })}
+        />
 
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-            Location
-          </label>
-          <input
-            type="text"
-            required
-            value={formData.location}
-            onChange={(e) => setFormData({ ...formData, location: e.target.value })}
-            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-          />
-        </div>
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Image URL
-        </label>
-        <input
-          type="url"
-          required
-          value={formData.image}
-          onChange={(e) => setFormData({ ...formData, image: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+        <CustomInput
+          label="Location"
+          type="text"
+          isRequired={true}
+          name="location"
+          placeholder="Enter event location"
+          value={formData.location}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, location: e.target.value })}
+          endContent={<MapPin size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
         />
       </div>
+
+      <CustomInput
+        label="Image URL"
+        type="url"
+        name="image"
+        placeholder="Enter image URL"
+        value={formData.image}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, image: e.target.value })}
+        endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
 
       <div className="flex justify-end space-x-3">
         <button
@@ -277,14 +267,13 @@ const Events = () => {
 
       {/* Search */}
       <div className="flex items-center space-x-4">
-        <div className="flex-1 relative">
-          <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-          <input
+        <div className="flex-1">
+          <CustomInput
             type="text"
             placeholder="Search events..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
+            endContent={<Search className="text-gray-400 w-5 h-5" />}
           />
         </div>
       </div>

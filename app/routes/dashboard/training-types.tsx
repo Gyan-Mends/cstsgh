@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Tag } from "lucide-react";
+import { Plus, Edit, Trash2, Eye, GraduationCap, FileText } from "lucide-react";
 import Drawer from "~/components/Drawer";
+import CustomInput from "~/components/CustomInput";
 import DataTable from "~/components/DataTable";
 import type { TrainingTypeInterface } from "~/components/interface";
 
@@ -197,31 +198,42 @@ const TrainingTypes = () => {
 
   const TrainingTypeForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
+      <CustomInput
+        label="Training Type Name"
+        type="text"
+        isRequired={true}
+        name="name"
+        placeholder="Enter training type name"
+        value={formData.name}
+        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, name: e.target.value })}
+        endContent={<GraduationCap size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+      />
+
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Training Type Name
+          Description
         </label>
-        <input
-          type="text"
+        <textarea
           required
-          value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          rows={4}
+          value={formData.description}
+          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
         />
       </div>
 
       <div>
-        <label className="flex items-center space-x-2">
-          <input
-            type="checkbox"
-            checked={formData.active}
-            onChange={(e) => setFormData({ ...formData, active: e.target.checked })}
-            className="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
-          />
-          <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-            Active
-          </span>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Status
         </label>
+        <select
+          value={formData.active ? "active" : "inactive"}
+          onChange={(e) => setFormData({ ...formData, active: e.target.value === "active" })}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+        >
+          <option value="active">Active</option>
+          <option value="inactive">Inactive</option>
+        </select>
       </div>
 
       <div className="flex justify-end space-x-3">
@@ -277,7 +289,7 @@ const TrainingTypes = () => {
         loading={loading}
         searchPlaceholder="Search training types..."
         emptyMessage="No training types found"
-        emptyIcon={Tag}
+        emptyIcon={GraduationCap}
       />
 
       {/* Create Drawer */}
@@ -317,7 +329,7 @@ const TrainingTypes = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Tag size={24} className="text-blue-600 dark:text-blue-400" />
+                <GraduationCap size={24} className="text-blue-600 dark:text-blue-400" />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

@@ -9,6 +9,7 @@
     "typecheck": "react-router typegen && tsc"
   },
   "dependencies": {
+    "@heroui/react": "^2.8.0-beta.9",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
     "dotenv": "^16.5.0",
