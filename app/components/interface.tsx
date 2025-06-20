@@ -108,7 +108,10 @@ export interface DirectorsBankInterface {
     _id: string;
     name: string;
     position: string;
+    bio?: string;
     image: string;
     areasOfExpertise: string[];
+    email?: string;
+    phone?: string;
 }
 

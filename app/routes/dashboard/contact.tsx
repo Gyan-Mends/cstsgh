@@ -61,13 +61,12 @@ const Contact = () => {
     if (!contactToDelete) return;
     
     try {
-      const form = new FormData();
-      form.append("_method", "DELETE");
-      form.append("id", contactToDelete);
-
       const response = await fetch("/api/contact", {
-        method: "POST",
-        body: form,
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: contactToDelete }),
       });
 
       const data = await response.json();
@@ -92,12 +91,12 @@ const Contact = () => {
   };
 
   // Table columns
-  const columns = [
+  const columns: Column<ContactInterface>[] = [
     {
       key: "fullname",
       title: "Name",
       sortable: true,
-      render: (value: string) => (
+      render: (value) => (
         <div className="font-medium text-gray-900 dark:text-white">{value}</div>
       ),
     },
@@ -105,21 +104,21 @@ const Contact = () => {
       key: "email",
       title: "Email",
       sortable: true,
-      render: (value: string) => (
+      render: (value) => (
         <div className="text-gray-600 dark:text-gray-400">{value}</div>
       ),
     },
     {
       key: "phone",
       title: "Phone",
-      render: (value: string) => (
+      render: (value) => (
         <div className="text-gray-600 dark:text-gray-400">{value}</div>
       ),
     },
     {
       key: "message",
       title: "Message",
-      render: (value: string) => (
+      render: (value) => (
         <div className="text-gray-600 dark:text-gray-400 line-clamp-2 max-w-md">
           {value}
         </div>
@@ -129,38 +128,45 @@ const Contact = () => {
       key: "createdAt",
       title: "Date",
       sortable: true,
-      render: (value: string) => (
+      render: (value) => (
         <div className="text-gray-500 dark:text-gray-400 text-sm">
           {new Date(value).toLocaleDateString()}
         </div>
       ),
     },
-  ];
-
-  // Table actions
-  const actions = [
     {
-      icon: Eye,
-      label: "View",
-      onClick: openViewDrawer,
-      color: "blue" as const,
-    },
-    {
-      icon: Trash2,
-      label: "Delete",
-      onClick: handleDelete,
-      color: "red" as const,
+      key: '_id',
+      title: 'Actions',
+      sortable: false,
+      searchable: false,
+      align: 'right' as const,
+      render: (value, record) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openViewDrawer(record);
+            }}
+            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteModal(record._id);
+            }}
+            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
     },
   ];
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
@@ -178,11 +184,10 @@ const Contact = () => {
       <DataTable
         data={contacts}
         columns={columns}
-        actions={actions}
         loading={loading}
         searchPlaceholder="Search contact messages..."
-        emptyMessage="No contact messages found"
-        emptyIcon={Mail}
+        emptyText="No contact messages found"
+        pageSize={10}
       />
 
       {/* View Drawer */}
@@ -264,6 +269,30 @@ const Contact = () => {
           </div>
         )}
       </Drawer>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={onDeleteModalOpenChange}
+        header="Delete Contact Message"
+        content="Are you sure you want to delete this contact message? This action cannot be undone."
+      >
+        <div className="flex gap-3">
+          <Button
+            variant="flat"
+            color="default"
+            onPress={() => onDeleteModalOpenChange()}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="danger"
+            onPress={handleDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };

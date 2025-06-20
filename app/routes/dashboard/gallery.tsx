@@ -3,6 +3,7 @@ import { Plus, Edit, Trash2, Search, Eye, Image as ImageIcon, FileText } from "l
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import type { GalleryInterface } from "~/components/interface";
+import { successToast, errorToast } from "~/components/toast";
 
 export const meta = () => {
   return [
@@ -14,7 +15,6 @@ export const meta = () => {
 const Gallery = () => {
   const [galleryItems, setGalleryItems] = useState<GalleryInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   
   // Drawer states
@@ -30,6 +30,29 @@ const Gallery = () => {
     image: "",
   });
 
+  // Convert file to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle file upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await convertToBase64(file);
+        setFormData({ ...formData, image: base64 });
+      } catch (error) {
+        errorToast("Failed to process image file");
+      }
+    }
+  };
+
   // Fetch gallery items
   const fetchGalleryItems = async () => {
     try {
@@ -40,10 +63,10 @@ const Gallery = () => {
       if (data.success) {
         setGalleryItems(data.data);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to fetch gallery items");
+      errorToast("Failed to fetch gallery items");
     } finally {
       setLoading(false);
     }
@@ -58,19 +81,25 @@ const Gallery = () => {
     e.preventDefault();
     
     try {
-      const form = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value);
-      });
-      
-      if (action === "edit" && selectedItem) {
-        form.append("_method", "PUT");
-        form.append("id", selectedItem._id);
+      // Validate required fields
+      if (!formData.title || !formData.type || !formData.image) {
+        errorToast("Please fill in all required fields");
+        return;
       }
 
+      const requestData = {
+        title: formData.title,
+        type: formData.type,
+        image: formData.image,
+        ...(action === "edit" && selectedItem && { id: selectedItem._id }),
+      };
+
       const response = await fetch("/api/gallery", {
-        method: "POST",
-        body: form,
+        method: action === "edit" ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
       const data = await response.json();
@@ -80,11 +109,12 @@ const Gallery = () => {
         resetForm();
         setIsCreateDrawerOpen(false);
         setIsEditDrawerOpen(false);
+        successToast(action === "create" ? "Gallery item created successfully!" : "Gallery item updated successfully!");
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to save gallery item");
+      errorToast("Failed to save gallery item");
     }
   };
 
@@ -93,24 +123,24 @@ const Gallery = () => {
     if (!confirm("Are you sure you want to delete this gallery item?")) return;
     
     try {
-      const form = new FormData();
-      form.append("_method", "DELETE");
-      form.append("id", id);
-
       const response = await fetch("/api/gallery", {
-        method: "POST",
-        body: form,
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id }),
       });
 
       const data = await response.json();
       
       if (data.success) {
         await fetchGalleryItems();
+        successToast("Gallery item deleted successfully!");
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to delete gallery item");
+      errorToast("Failed to delete gallery item");
     }
   };
 
@@ -130,7 +160,7 @@ const Gallery = () => {
     setFormData({
       title: item.title,
       type: item.type,
-      image: item.image,
+      image: item.image || "",
     });
     setIsEditDrawerOpen(true);
   };
@@ -162,7 +192,7 @@ const Gallery = () => {
 
       <div>
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Type
+          Type *
         </label>
         <select
           required
@@ -179,16 +209,48 @@ const Gallery = () => {
         </select>
       </div>
 
-      <CustomInput
-        label="Image URL"
-        type="url"
-        isRequired={true}
-        name="image"
-        placeholder="Enter image URL"
-        value={formData.image}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, image: e.target.value })}
-        endContent={<ImageIcon size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-      />
+      <div>
+        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+          Image {!isEdit && "*"}
+        </label>
+        {isEdit && selectedItem?.image && (
+          <div className="mb-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
+            <img 
+              src={selectedItem.image} 
+              alt="Current gallery item" 
+              className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'h-20 w-32 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center';
+                fallback.innerHTML = '<span class="text-gray-500 text-sm">Image not found</span>';
+                target.parentNode?.insertBefore(fallback, target.nextSibling);
+              }}
+            />
+          </div>
+        )}
+        <input
+          type="file"
+          accept="image/*"
+          onChange={handleFileChange}
+          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+        />
+        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          {isEdit ? "Choose a new image file or leave empty to keep current image" : "Upload an image file for the gallery item"}
+        </p>
+        {formData.image && formData.image !== selectedItem?.image && (
+          <div className="mt-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">New image preview:</p>
+            <img 
+              src={formData.image} 
+              alt="New gallery item preview" 
+              className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+            />
+          </div>
+        )}
+      </div>
 
       <div className="flex justify-end space-x-3">
         <button
@@ -222,12 +284,6 @@ const Gallery = () => {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>

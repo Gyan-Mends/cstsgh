@@ -23,20 +23,19 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   try {
-    const formData = await request.formData();
     const method = request.method;
-    const _method = formData.get("_method") as string;
-    
-    const actionMethod = _method || method;
 
-    switch (actionMethod) {
+    switch (method) {
       case "POST": {
-        const areasOfExpertise = formData.get("areasOfExpertise") as string;
+        const body = await request.json();
         const directorData = {
-          name: formData.get("name") as string,
-          position: formData.get("position") as string,
-          image: formData.get("image") as string,
-          areasOfExpertise: areasOfExpertise ? areasOfExpertise.split(",").map(area => area.trim()) : [],
+          name: body.name,
+          position: body.position,
+          bio: body.bio,
+          image: body.image,
+          areasOfExpertise: body.areasOfExpertise || [],
+          email: body.email,
+          phone: body.phone,
         };
 
         const newDirector = new DirectorsBank(directorData);
@@ -46,13 +45,16 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "PUT": {
-        const id = formData.get("id") as string;
-        const areasOfExpertise = formData.get("areasOfExpertise") as string;
+        const body = await request.json();
+        const id = body.id;
         const updateData = {
-          name: formData.get("name") as string,
-          position: formData.get("position") as string,
-          image: formData.get("image") as string,
-          areasOfExpertise: areasOfExpertise ? areasOfExpertise.split(",").map(area => area.trim()) : [],
+          name: body.name,
+          position: body.position,
+          bio: body.bio,
+          areasOfExpertise: body.areasOfExpertise || [],
+          email: body.email,
+          phone: body.phone,
+          ...(body.image && { image: body.image }),
         };
 
         const updatedDirector = await DirectorsBank.findByIdAndUpdate(id, updateData, { new: true });
@@ -65,7 +67,8 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "DELETE": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const deletedDirector = await DirectorsBank.findByIdAndDelete(id);
         
         if (!deletedDirector) {

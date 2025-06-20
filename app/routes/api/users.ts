@@ -22,50 +22,31 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 };
 
-// Helper function to convert File to base64 string
-const fileToBase64 = async (file: File): Promise<string> => {
-  const arrayBuffer = await file.arrayBuffer();
-  const buffer = Buffer.from(arrayBuffer);
-  const base64 = buffer.toString('base64');
-  return `data:${file.type};base64,${base64}`;
-};
-
 export const action: ActionFunction = async ({ request }) => {
   try {
-    const formData = await request.formData();
     const method = request.method;
-    const _method = formData.get("_method") as string;
-    
-    const actionMethod = _method || method;
 
-    switch (actionMethod) {
+    switch (method) {
       case "POST": {
-        const imageFile = formData.get("image") as File | null;
-        let imageData = "";
-        
-        if (imageFile && imageFile.size > 0) {
-          imageData = await fileToBase64(imageFile);
-        }
-
-        const password = formData.get("password") as string;
+        const body = await request.json();
         
         // Validate required fields
-        if (!password) {
+        if (!body.password) {
           return Response.json({ success: false, message: "Password is required" }, { status: 400 });
         }
 
         // Hash password
         const saltRounds = 12;
-        const hashedPassword = await bcrypt.hash(password, saltRounds);
+        const hashedPassword = await bcrypt.hash(body.password, saltRounds);
 
         const userData = {
-          fullName: formData.get("fullName") as string,
-          email: formData.get("email") as string,
-          phone: formData.get("phone") as string,
-          position: formData.get("position") as string,
-          role: formData.get("role") as string,
+          fullName: body.fullName,
+          email: body.email,
+          phone: body.phone,
+          position: body.position,
+          role: body.role,
           password: hashedPassword,
-          base64Image: imageData, // Use base64Image field as per model
+          base64Image: body.image || "",
         };
 
         const newUser = new User(userData);
@@ -79,27 +60,26 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "PUT": {
-        const id = formData.get("id") as string;
-        const imageFile = formData.get("image") as File | null;
+        const body = await request.json();
+        const id = body.id;
         
         const updateData: any = {
-          fullName: formData.get("fullName") as string,
-          email: formData.get("email") as string,
-          phone: formData.get("phone") as string,
-          position: formData.get("position") as string,
-          role: formData.get("role") as string,
+          fullName: body.fullName,
+          email: body.email,
+          phone: body.phone,
+          position: body.position,
+          role: body.role,
         };
 
-        // Only update image if a new file is provided
-        if (imageFile && imageFile.size > 0) {
-          updateData.base64Image = await fileToBase64(imageFile);
+        // Only update image if provided
+        if (body.image) {
+          updateData.base64Image = body.image;
         }
 
         // Hash password if provided
-        const newPassword = formData.get("password") as string;
-        if (newPassword && newPassword.trim() !== "") {
+        if (body.password && body.password.trim() !== "") {
           const saltRounds = 12;
-          updateData.password = await bcrypt.hash(newPassword, saltRounds);
+          updateData.password = await bcrypt.hash(body.password, saltRounds);
         }
 
         const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");
@@ -112,7 +92,8 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "DELETE": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const deletedUser = await User.findByIdAndDelete(id);
         
         if (!deletedUser) {

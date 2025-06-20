@@ -38,9 +38,32 @@ const Training = () => {
     duration: "",
     format: "",
     client: "",
-    image: null as File | null,
+    image: "" as string,
     trainingTypeId: "",
   });
+
+  // Convert file to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle file upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await convertToBase64(file);
+        setFormData({ ...formData, image: base64 });
+      } catch (error) {
+        errorToast("Failed to process image file");
+      }
+    }
+  };
 
   // Fetch data
   const fetchTrainings = async () => {
@@ -87,28 +110,24 @@ const Training = () => {
         return;
       }
       
-      const form = new FormData();
-      form.append("title", formData.title);
-      form.append("description", formData.description);
-      form.append("date", formData.date);
-      form.append("duration", formData.duration);
-      form.append("format", formData.format);
-      form.append("client", formData.client);
-      form.append("trainingTypeId", formData.trainingTypeId);
-      
-      // Handle file upload
-      if (formData.image) {
-        form.append("image", formData.image);
-      }
-      
-      if (action === "edit" && selectedTraining) {
-        form.append("_method", "PUT");
-        form.append("id", selectedTraining._id);
-      }
+      const requestData = {
+        title: formData.title,
+        description: formData.description,
+        date: formData.date,
+        duration: formData.duration,
+        format: formData.format,
+        client: formData.client,
+        image: formData.image,
+        trainingTypeId: formData.trainingTypeId,
+        ...(action === "edit" && selectedTraining && { id: selectedTraining._id }),
+      };
 
       const response = await fetch("/api/training", {
-        method: "POST",
-        body: form,
+        method: action === "edit" ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
       const data = await response.json();
@@ -138,13 +157,12 @@ const Training = () => {
     if (!trainingToDelete) return;
     
     try {
-      const form = new FormData();
-      form.append("_method", "DELETE");
-      form.append("id", trainingToDelete);
-
       const response = await fetch("/api/training", {
-        method: "POST",
-        body: form,
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: trainingToDelete }),
       });
 
       const data = await response.json();
@@ -171,7 +189,7 @@ const Training = () => {
       duration: "",
       format: "",
       client: "",
-      image: null,
+      image: "",
       trainingTypeId: "",
     });
     setSelectedTraining(null);
@@ -187,7 +205,7 @@ const Training = () => {
       duration: training.duration,
       format: training.format,
       client: training.client,
-      image: null, // Reset file input for edit
+      image: training.image || "",
       trainingTypeId: training.trainingTypeId || "",
     });
     setIsEditDrawerOpen(true);
@@ -212,10 +230,17 @@ const Training = () => {
                 src={record.image} 
                 alt={record.title}
                 className="h-10 w-10 rounded-lg object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
               />
-            ) : (
-              <GraduationCap size={16} className="text-white" />
-            )}
+            ) : null}
+            <GraduationCap 
+              size={16} 
+              className={`text-white ${record.image ? 'hidden' : ''}`} 
+            />
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -426,15 +451,22 @@ const Training = () => {
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null;
-                setFormData({ ...formData, image: file });
-              }}
+              onChange={handleFileChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Upload an image file for the training session
             </p>
+            {formData.image && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Preview:</p>
+                <img 
+                  src={formData.image} 
+                  alt="Training preview" 
+                  className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            )}
           </div>
 
           <Select
@@ -453,7 +485,7 @@ const Training = () => {
             }}
           >
             {trainingTypes.map((type) => (
-              <SelectItem key={type._id || ""} value={type._id}>
+              <SelectItem key={type._id || ""}>
                 {type.name}
               </SelectItem>
             ))}
@@ -572,28 +604,43 @@ const Training = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Training Image
             </label>
-            {selectedTraining?.image && typeof selectedTraining.image === 'string' && (
+            {selectedTraining?.image && (
               <div className="mb-3">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
                 <img 
                   src={selectedTraining.image} 
                   alt="Current training" 
                   className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                    const fallback = document.createElement('div');
+                    fallback.className = 'h-20 w-32 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center';
+                    fallback.innerHTML = '<span class="text-gray-500 text-sm">Image not found</span>';
+                    target.parentNode?.insertBefore(fallback, target.nextSibling);
+                  }}
                 />
               </div>
             )}
             <input
               type="file"
               accept="image/*"
-              onChange={(e) => {
-                const file = e.target.files?.[0] || null;
-                setFormData({ ...formData, image: file });
-              }}
+              onChange={handleFileChange}
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Choose a new image file or leave empty to keep current image
             </p>
+            {formData.image && formData.image !== selectedTraining?.image && (
+              <div className="mt-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">New image preview:</p>
+                <img 
+                  src={formData.image} 
+                  alt="New training preview" 
+                  className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            )}
           </div>
 
           <Select
@@ -612,7 +659,7 @@ const Training = () => {
             }}
           >
             {trainingTypes.map((type) => (
-              <SelectItem key={type._id || ""} value={type._id}>
+              <SelectItem key={type._id || ""}>
                 {type.name}
               </SelectItem>
             ))}
@@ -657,10 +704,17 @@ const Training = () => {
                     src={selectedTraining.image} 
                     alt={selectedTraining.title}
                     className="h-16 w-16 rounded-lg object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
                   />
-                ) : (
-                  <GraduationCap size={24} className="text-white" />
-                )}
+                ) : null}
+                <GraduationCap 
+                  size={24} 
+                  className={`text-white ${selectedTraining.image ? 'hidden' : ''}`} 
+                />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

@@ -4,6 +4,7 @@ import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import DataTable, { type Column } from "~/components/DataTable";
 import type { TrainingTypeInterface } from "~/components/interface";
+import { successToast, errorToast } from "~/components/toast";
 
 export const meta = () => {
   return [
@@ -15,7 +16,6 @@ export const meta = () => {
 const TrainingTypes = () => {
   const [trainingTypes, setTrainingTypes] = useState<TrainingTypeInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   
   // Drawer states
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
@@ -27,9 +27,32 @@ const TrainingTypes = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    image: null as File | null,
+    image: "" as string,
     isActive: true,
   });
+
+  // Convert file to base64
+  const convertToBase64 = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
+  // Handle file upload
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      try {
+        const base64 = await convertToBase64(file);
+        setFormData({ ...formData, image: base64 });
+      } catch (error) {
+        errorToast("Failed to process image file");
+      }
+    }
+  };
 
   // Fetch training types
   const fetchTrainingTypes = async () => {
@@ -41,10 +64,10 @@ const TrainingTypes = () => {
       if (data.success) {
         setTrainingTypes(data.data);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to fetch training types");
+      errorToast("Failed to fetch training types");
     } finally {
       setLoading(false);
     }
@@ -61,34 +84,30 @@ const TrainingTypes = () => {
     try {
       // Validate required fields
       if (!formData.name || !formData.description) {
-        setError("Please fill in all required fields");
+        errorToast("Please fill in all required fields");
         return;
       }
 
       // For create action, image is required
       if (action === "create" && !formData.image) {
-        setError("Please select an image file");
+        errorToast("Please select an image file");
         return;
       }
 
-      const form = new FormData();
-      form.append("name", formData.name);
-      form.append("description", formData.description);
-      form.append("isActive", formData.isActive.toString());
-      
-      // Handle file upload
-      if (formData.image) {
-        form.append("image", formData.image);
-      }
-      
-      if (action === "edit" && selectedType) {
-        form.append("_method", "PUT");
-        form.append("id", selectedType._id);
-      }
+      const requestData = {
+        name: formData.name,
+        description: formData.description,
+        image: formData.image,
+        isActive: formData.isActive,
+        ...(action === "edit" && selectedType && { id: selectedType._id }),
+      };
 
       const response = await fetch("/api/training-types", {
-        method: "POST",
-        body: form,
+        method: action === "edit" ? "PUT" : "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestData),
       });
 
       const data = await response.json();
@@ -98,12 +117,12 @@ const TrainingTypes = () => {
         resetForm();
         setIsCreateDrawerOpen(false);
         setIsEditDrawerOpen(false);
-        setError("");
+        successToast(action === "create" ? "Training type created successfully!" : "Training type updated successfully!");
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to save training type");
+      errorToast("Failed to save training type");
     }
   };
 
@@ -112,25 +131,24 @@ const TrainingTypes = () => {
     if (!confirm("Are you sure you want to delete this training type?")) return;
     
     try {
-      const form = new FormData();
-      form.append("_method", "DELETE");
-      form.append("id", type._id);
-
       const response = await fetch("/api/training-types", {
-        method: "POST",
-        body: form,
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: type._id }),
       });
 
       const data = await response.json();
       
       if (data.success) {
         await fetchTrainingTypes();
-        setError("");
+        successToast("Training type deleted successfully!");
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to delete training type");
+      errorToast("Failed to delete training type");
     }
   };
 
@@ -139,7 +157,7 @@ const TrainingTypes = () => {
     setFormData({
       name: "",
       description: "",
-      image: null,
+      image: "",
       isActive: true,
     });
     setSelectedType(null);
@@ -151,7 +169,7 @@ const TrainingTypes = () => {
     setFormData({
       name: type.name,
       description: type.description || "",
-      image: null, // Reset file input for edit
+      image: type.image || "",
       isActive: type.isActive,
     });
     setIsEditDrawerOpen(true);
@@ -172,15 +190,23 @@ const TrainingTypes = () => {
       render: (value: string, record: TrainingTypeInterface) => (
         <div className="flex items-center">
           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center overflow-hidden">
-            {record.image && typeof record.image === 'string' ? (
+            {record.image ? (
               <img 
                 src={record.image} 
                 alt={record.name}
                 className="h-10 w-10 rounded-lg object-cover"
+                onError={(e) => {
+                  // Fallback to icon if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
               />
-            ) : (
-              <GraduationCap size={16} className="text-white" />
-            )}
+            ) : null}
+            <GraduationCap 
+              size={16} 
+              className={`text-white ${record.image ? 'hidden' : ''}`} 
+            />
           </div>
           <div className="ml-4">
             <div className="text-sm font-medium text-gray-900 dark:text-white">
@@ -213,7 +239,7 @@ const TrainingTypes = () => {
       sortable: true,
       render: (value: string) => (
         <div className="text-gray-500 dark:text-gray-400 text-sm">
-          {new Date(value).toLocaleDateString()}
+          {value ? new Date(value).toLocaleDateString() : 'N/A'}
         </div>
       ),
     },
@@ -288,28 +314,43 @@ const TrainingTypes = () => {
         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
           Training Type Image {!isEdit && "*"}
         </label>
-        {isEdit && selectedType?.image && typeof selectedType.image === 'string' && (
+        {isEdit && selectedType?.image && (
           <div className="mb-3">
             <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
             <img 
               src={selectedType.image} 
               alt="Current training type" 
               className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = 'none';
+                const fallback = document.createElement('div');
+                fallback.className = 'h-20 w-32 rounded-lg border-2 border-gray-200 dark:border-gray-600 bg-gray-100 dark:bg-gray-700 flex items-center justify-center';
+                fallback.innerHTML = '<span class="text-gray-500 text-sm">Image not found</span>';
+                target.parentNode?.insertBefore(fallback, target.nextSibling);
+              }}
             />
           </div>
         )}
         <input
           type="file"
           accept="image/*"
-          onChange={(e) => {
-            const file = e.target.files?.[0] || null;
-            setFormData({ ...formData, image: file });
-          }}
+          onChange={handleFileChange}
           className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
         />
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
           {isEdit ? "Choose a new image file or leave empty to keep current image" : "Upload an image file for the training type"}
         </p>
+        {formData.image && formData.image !== selectedType?.image && (
+          <div className="mt-3">
+            <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">New image preview:</p>
+            <img 
+              src={formData.image} 
+              alt="New training type preview" 
+              className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+            />
+          </div>
+        )}
       </div>
 
       <div>
@@ -350,12 +391,6 @@ const TrainingTypes = () => {
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
@@ -418,15 +453,22 @@ const TrainingTypes = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-purple-500 to-pink-600 flex items-center justify-center overflow-hidden">
-                {selectedType.image && typeof selectedType.image === 'string' ? (
+                {selectedType.image ? (
                   <img 
                     src={selectedType.image} 
                     alt={selectedType.name}
                     className="h-16 w-16 rounded-lg object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                      target.nextElementSibling?.classList.remove('hidden');
+                    }}
                   />
-                ) : (
-                  <GraduationCap size={24} className="text-white" />
-                )}
+                ) : null}
+                <GraduationCap 
+                  size={24} 
+                  className={`text-white ${selectedType.image ? 'hidden' : ''}`} 
+                />
               </div>
               <div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white">

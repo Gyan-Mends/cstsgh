@@ -23,20 +23,18 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   try {
-    const formData = await request.formData();
     const method = request.method;
-    const _method = formData.get("_method") as string;
     
-    const actionMethod = _method || method;
-
-    switch (actionMethod) {
+    switch (method) {
       case "POST": {
+        const body = await request.json();
         const eventData = {
-          title: formData.get("title") as string,
-          description: formData.get("description") as string,
-          date: formData.get("date") as string,
-          location: formData.get("location") as string,
-          image: formData.get("image") as string,
+          title: body.title,
+          description: body.description,
+          date: body.date,
+          duration: body.duration,
+          location: body.location,
+          image: body.image,
         };
 
         const newEvent = new Event(eventData);
@@ -46,13 +44,15 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "PUT": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const updateData = {
-          title: formData.get("title") as string,
-          description: formData.get("description") as string,
-          date: formData.get("date") as string,
-          location: formData.get("location") as string,
-          image: formData.get("image") as string,
+          title: body.title,
+          description: body.description,
+          date: body.date,
+          duration: body.duration,
+          location: body.location,
+          ...(body.image && { image: body.image }),
         };
 
         const updatedEvent = await Event.findByIdAndUpdate(id, updateData, { new: true });
@@ -65,7 +65,8 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "DELETE": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const deletedEvent = await Event.findByIdAndDelete(id);
         
         if (!deletedEvent) {

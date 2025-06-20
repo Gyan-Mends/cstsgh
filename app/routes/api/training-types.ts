@@ -23,30 +23,17 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   try {
-    const formData = await request.formData();
     const method = request.method;
-    const _method = formData.get("_method") as string;
-    
-    const actionMethod = _method || method;
 
-    switch (actionMethod) {
+    switch (method) {
       case "POST": {
-        const imageFile = formData.get("image") as File | null;
-        let imageUrl = "";
-        
-        // Handle file upload - for now, we'll just use a placeholder
-        // In a real application, you'd upload to a file storage service
-        if (imageFile && imageFile.size > 0) {
-          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
-          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
-          // TODO: Implement actual file upload logic
-        }
+        const body = await request.json();
 
         const trainingTypeData = {
-          name: formData.get("name") as string,
-          description: formData.get("description") as string,
-          image: imageUrl,
-          isActive: formData.get("isActive") === "true",
+          name: body.name,
+          description: body.description,
+          image: body.image, // Base64 string
+          isActive: body.isActive,
         };
 
         const newTrainingType = new TrainingType(trainingTypeData);
@@ -56,26 +43,18 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "PUT": {
-        const id = formData.get("id") as string;
-        const imageFile = formData.get("image") as File | null;
-        let imageUrl = "";
-        
-        // Handle file upload for updates
-        if (imageFile && imageFile.size > 0) {
-          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
-          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
-          // TODO: Implement actual file upload logic
-        }
+        const body = await request.json();
+        const id = body.id;
 
         const updateData: any = {
-          name: formData.get("name") as string,
-          description: formData.get("description") as string,
-          isActive: formData.get("isActive") === "true",
+          name: body.name,
+          description: body.description,
+          isActive: body.isActive,
         };
 
-        // Only update image if a new file was provided
-        if (imageUrl) {
-          updateData.image = imageUrl;
+        // Only update image if provided
+        if (body.image) {
+          updateData.image = body.image;
         }
 
         const updatedTrainingType = await TrainingType.findByIdAndUpdate(id, updateData, { new: true });
@@ -88,7 +67,9 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "DELETE": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
+        
         const deletedTrainingType = await TrainingType.findByIdAndDelete(id);
         
         if (!deletedTrainingType) {

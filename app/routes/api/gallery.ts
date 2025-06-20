@@ -23,18 +23,15 @@ export const loader: LoaderFunction = async ({ request }) => {
 
 export const action: ActionFunction = async ({ request }) => {
   try {
-    const formData = await request.formData();
     const method = request.method;
-    const _method = formData.get("_method") as string;
-    
-    const actionMethod = _method || method;
 
-    switch (actionMethod) {
+    switch (method) {
       case "POST": {
+        const body = await request.json();
         const galleryData = {
-          title: formData.get("title") as string,
-          type: formData.get("type") as string,
-          image: formData.get("image") as string,
+          title: body.title,
+          type: body.type,
+          image: body.image,
         };
 
         const newGallery = new Gallery(galleryData);
@@ -44,11 +41,12 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "PUT": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const updateData = {
-          title: formData.get("title") as string,
-          type: formData.get("type") as string,
-          image: formData.get("image") as string,
+          title: body.title,
+          type: body.type,
+          ...(body.image && { image: body.image }),
         };
 
         const updatedGallery = await Gallery.findByIdAndUpdate(id, updateData, { new: true });
@@ -61,7 +59,8 @@ export const action: ActionFunction = async ({ request }) => {
       }
 
       case "DELETE": {
-        const id = formData.get("id") as string;
+        const body = await request.json();
+        const id = body.id;
         const deletedGallery = await Gallery.findByIdAndDelete(id);
         
         if (!deletedGallery) {
