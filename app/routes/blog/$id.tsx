@@ -1,53 +1,52 @@
-"use client"
+"use client";
 
 import { useState, useEffect } from "react"
 import { useParams, Link } from "react-router"
 import { motion } from "framer-motion"
-import { ArrowLeft, Calendar, User, Tag, Share2, AlertTriangle, Loader } from "lucide-react"
+import { Calendar, User, ArrowLeft, Share2, Facebook, Twitter, Linkedin, Loader, AlertTriangle } from "lucide-react"
+import type { BlogInterface } from "~/components/interface"
 import axios from "axios"
 import toast, { Toaster } from "react-hot-toast"
 
-interface BlogInterface {
-    _id: string;
-    name: string;
-    description: string;
-    image: string;
-    category: string | { _id: string; name: string; description: string };
-    admin: string | { _id: string; fullName: string; email: string };
-    status?: 'draft' | 'review' | 'published';
-    createdAt?: string;
-    updatedAt?: string;
-}
-
 export default function BlogDetailPage() {
     const { id } = useParams();
-    const [blog, setBlog] = useState<BlogInterface | null>(null);
+    const [blogPost, setBlogPost] = useState<BlogInterface | null>(null);
     const [relatedBlogs, setRelatedBlogs] = useState<BlogInterface[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchBlog = async () => {
+        const fetchBlogData = async () => {
             try {
                 setLoading(true);
-                const response = await axios.get(`/api/blogs?id=${id}`);
+                setError(null);
                 
-                if (response.data.success) {
-                    setBlog(response.data.data);
-                    // Fetch related blogs
+                // Fetch the specific blog post
+                const blogResponse = await axios.get(`/api/blogs?id=${id}`);
+                
+                if (blogResponse.data.success) {
+                    const blog = blogResponse.data.data;
+                    
+                    // Check if the blog is published
+                    if (blog.status !== 'published') {
+                        throw new Error('Blog post not found');
+                    }
+                    
+                    setBlogPost(blog);
+                    
+                    // Fetch related blogs (published only, excluding current blog)
                     const relatedResponse = await axios.get('/api/blogs');
                     if (relatedResponse.data.success) {
                         const published = relatedResponse.data.data.filter((b: BlogInterface) => 
                             b.status === 'published' && b._id !== id
                         );
-                        setRelatedBlogs(published.slice(0, 3)); // Show 3 related blogs
+                        setRelatedBlogs(published.slice(0, 3));
                     }
                 } else {
-                    setError(response.data.message || 'Blog post not found');
-                    toast.error('Blog post not found');
+                    throw new Error(blogResponse.data.message || 'Blog post not found');
                 }
             } catch (err: any) {
-                const errorMessage = err.response?.data?.message || 'An error occurred while fetching blog details';
+                const errorMessage = err.response?.data?.message || err.message || 'An error occurred while fetching blog details';
                 setError(errorMessage);
                 toast.error(errorMessage);
             } finally {
@@ -56,25 +55,32 @@ export default function BlogDetailPage() {
         };
 
         if (id) {
-            fetchBlog();
+            fetchBlogData();
         }
     }, [id]);
 
-    const sharePost = () => {
-        if (navigator.share && blog) {
-            navigator.share({
-                title: blog.name,
-                text: blog.description.substring(0, 100) + '...',
-                url: window.location.href,
-            }).catch(() => {
-                // Fallback to copying URL
-                navigator.clipboard.writeText(window.location.href);
-                toast.success('Link copied to clipboard!');
-            });
-        } else {
-            // Fallback to copying URL
-            navigator.clipboard.writeText(window.location.href);
-            toast.success('Link copied to clipboard!');
+    const shareUrl = typeof window !== 'undefined' ? window.location.href : '';
+    const shareTitle = blogPost?.name || '';
+
+    const handleShare = (platform: string) => {
+        const encodedUrl = encodeURIComponent(shareUrl);
+        const encodedTitle = encodeURIComponent(shareTitle);
+        
+        let shareLink = '';
+        switch (platform) {
+            case 'facebook':
+                shareLink = `https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}`;
+                break;
+            case 'twitter':
+                shareLink = `https://twitter.com/intent/tweet?url=${encodedUrl}&text=${encodedTitle}`;
+                break;
+            case 'linkedin':
+                shareLink = `https://www.linkedin.com/sharing/share-offsite/?url=${encodedUrl}`;
+                break;
+        }
+        
+        if (shareLink) {
+            window.open(shareLink, '_blank', 'width=600,height=400');
         }
     };
 
@@ -86,7 +92,7 @@ export default function BlogDetailPage() {
         );
     }
 
-    if (error || !blog) {
+    if (error || !blogPost) {
         return (
             <div className="flex justify-center items-center min-h-screen">
                 <div className="text-center">
@@ -110,162 +116,180 @@ export default function BlogDetailPage() {
             <Toaster position="top-right" />
             <main className="flex-1">
                 {/* Hero Section */}
-                <section className="relative h-96 overflow-hidden">
-                    <img
-                        src={blog.image}
-                        alt={blog.name}
-                        className="absolute inset-0 h-full w-full object-cover"
-                        onError={(e) => {
-                            e.currentTarget.src = '/placeholder-blog.jpg';
-                        }}
-                    />
-                    <div className="absolute inset-0 bg-black/50"></div>
-                    <div className="relative z-10 flex h-full items-center">
-                        <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                            <motion.div
-                                initial={{ opacity: 0, y: 20 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.7 }}
-                            >
-                                <Link 
-                                    to="/blog" 
-                                    className="inline-flex items-center text-white hover:text-pink-200 mb-4"
-                                >
-                                    <ArrowLeft className="mr-2 h-4 w-4" />
-                                    Back to Blog
-                                </Link>
-                                
-                                <div className="flex items-center gap-4 mb-4 text-white/80">
-                                    {typeof blog.category === 'object' && (
-                                        <div className="flex items-center">
-                                            <Tag className="h-4 w-4 mr-1" />
-                                            {blog.category.name}
-                                        </div>
-                                    )}
-                                    <div className="flex items-center">
-                                        <Calendar className="h-4 w-4 mr-1" />
-                                        {blog.createdAt && new Date(blog.createdAt).toLocaleDateString()}
-                                    </div>
-                                    <div className="flex items-center">
-                                        <User className="h-4 w-4 mr-1" />
-                                        {typeof blog.admin === 'object' ? blog.admin.fullName : 'Admin'}
-                                    </div>
-                                </div>
-
-                                <h1 className="text-4xl font-bold text-white md:text-5xl">
-                                    {blog.name}
-                                </h1>
-                            </motion.div>
-                        </div>
-                    </div>
-                </section>
-
-                {/* Content Section */}
-                <section className="py-12 md:py-16">
+                <section className="bg-gray-50 py-12 md:py-16">
                     <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
-                        <motion.article
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6 }}
-                            className="prose prose-lg max-w-none"
-                        >
-                            <div 
-                                className="text-gray-700 leading-relaxed"
-                                dangerouslySetInnerHTML={{ __html: blog.description }}
-                            />
-                        </motion.article>
-
-                        {/* Share Section */}
                         <motion.div
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.6, delay: 0.2 }}
-                            className="mt-8 pt-8 border-t border-gray-200"
+                            transition={{ duration: 0.5 }}
                         >
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4 text-sm text-gray-500">
-                                    <span>Published on {blog.createdAt && new Date(blog.createdAt).toLocaleDateString('en-US', {
-                                        year: 'numeric',
-                                        month: 'long',
-                                        day: 'numeric'
-                                    })}</span>
-                                    {typeof blog.admin === 'object' && (
-                                        <span>by {blog.admin.fullName}</span>
-                                    )}
+                            <Link 
+                                to="/blog" 
+                                className="inline-flex items-center text-pink-500 hover:text-pink-600 mb-6"
+                            >
+                                <ArrowLeft className="mr-2 h-4 w-4" />
+                                Back to Blog
+                            </Link>
+                            
+                            <div className="mb-6">
+                                <span className="inline-block px-3 py-1 text-sm font-medium text-pink-500 bg-pink-100 rounded-full">
+                                    {typeof blogPost.category === 'object' ? blogPost.category.name : blogPost.category}
+                                </span>
+                            </div>
+                            
+                            <h1 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl lg:text-5xl">
+                                {blogPost.name}
+                            </h1>
+                            
+                            <div className="mt-6 flex items-center text-gray-600">
+                                <div className="flex items-center">
+                                    <User className="mr-2 h-5 w-5" />
+                                    <span className="font-medium">
+                                        {typeof blogPost.admin === 'object' ? blogPost.admin.fullName || 'Admin' : 'Admin'}
+                                    </span>
                                 </div>
-                                <button
-                                    onClick={sharePost}
-                                    className="inline-flex items-center text-pink-600 hover:text-pink-700 transition-colors"
-                                >
-                                    <Share2 className="h-4 w-4 mr-2" />
-                                    Share
-                                </button>
+                                <span className="mx-3">•</span>
+                                <div className="flex items-center">
+                                    <Calendar className="mr-2 h-5 w-5" />
+                                    <span>{blogPost.createdAt ? new Date(blogPost.createdAt).toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    }) : new Date().toLocaleDateString('en-US', { 
+                                        year: 'numeric', 
+                                        month: 'long', 
+                                        day: 'numeric' 
+                                    })}</span>
+                                </div>
+                                <span className="mx-3">•</span>
+                                <span>{Math.max(1, Math.ceil((blogPost.description?.length || 0) / 1000))} min read</span>
                             </div>
                         </motion.div>
                     </div>
                 </section>
 
-                {/* Related Blog Posts */}
-                {relatedBlogs.length > 0 && (
-                    <section className="py-16 bg-gray-50">
-                        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+                {/* Main Content */}
+                <section className="py-12 md:py-16">
+                    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+                        <div className="grid gap-12 lg:grid-cols-4">
+                            {/* Article Content */}
+                            <div className="lg:col-span-3">
+                                <motion.div
+                                    initial={{ opacity: 0, y: 20 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    transition={{ duration: 0.7 }}
+                                >
+                                    {/* Featured Image */}
+                                    {blogPost.image && (
+                                        <div className="mb-8 rounded-lg overflow-hidden">
+                                            <img 
+                                                src={blogPost.image} 
+                                                alt={blogPost.name}
+                                                className="w-full h-64 md:h-96 object-cover"
+                                                onError={(e) => {
+                                                    e.currentTarget.src = '/placeholder-blog.jpg';
+                                                }}
+                                            />
+                                        </div>
+                                    )}
+                                    
+                                    {/* Article Body */}
+                                    <div className="prose prose-lg max-w-none">
+                                        <div 
+                                            dangerouslySetInnerHTML={{ __html: blogPost.description }}
+                                            className="text-gray-700 leading-relaxed"
+                                        />
+                                    </div>
+                                    
+                                    {/* Share Section */}
+                                    <div className="mt-12 pt-8 border-t border-gray-200">
+                                        <div className="flex items-center justify-between">
+                                            <h3 className="text-lg font-semibold text-gray-900">Share this article</h3>
+                                            <div className="flex space-x-4">
+                                                <button
+                                                    onClick={() => handleShare('facebook')}
+                                                    className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                                                >
+                                                    <Facebook className="h-5 w-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('twitter')}
+                                                    className="p-2 text-gray-600 hover:text-blue-400 hover:bg-blue-50 rounded-full transition-colors"
+                                                >
+                                                    <Twitter className="h-5 w-5" />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleShare('linkedin')}
+                                                    className="p-2 text-gray-600 hover:text-blue-700 hover:bg-blue-50 rounded-full transition-colors"
+                                                >
+                                                    <Linkedin className="h-5 w-5" />
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            </div>
+                        </div>
+
+                        {/* Related Articles Section */}
+                        {relatedBlogs && relatedBlogs.length > 0 && (
                             <motion.div
                                 initial={{ opacity: 0, y: 20 }}
                                 animate={{ opacity: 1, y: 0 }}
-                                transition={{ duration: 0.6, delay: 0.3 }}
+                                transition={{ duration: 0.7, delay: 0.3 }}
+                                className="mt-16 pt-12 border-t border-gray-200"
                             >
                                 <h2 className="text-2xl font-bold text-gray-900 mb-8">Related Articles</h2>
-                                <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
-                                    {relatedBlogs.map((relatedBlog, index) => (
-                                        <motion.div
-                                            key={relatedBlog._id}
-                                            initial={{ opacity: 0, y: 20 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            transition={{ duration: 0.5, delay: 0.1 * index }}
-                                            className="bg-white rounded-lg shadow-md hover:shadow-lg transition-all"
+                                <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+                                    {relatedBlogs.slice(0, 3).map((relatedBlog, index) => (
+                                        <Link 
+                                            key={index}
+                                            to={`/blog/${relatedBlog._id}`}
+                                            className="group block"
                                         >
-                                            <Link to={`/blog/${relatedBlog._id}`}>
-                                                <div className="group">
-                                                    <div className="h-48 w-full bg-gray-200 overflow-hidden rounded-t-lg">
+                                            <article className="bg-white rounded-lg border border-gray-200 overflow-hidden hover:shadow-lg transition-shadow duration-300">
+                                                {relatedBlog.image && (
+                                                    <div className="aspect-w-16 aspect-h-9">
                                                         <img 
-                                                            className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-105" 
                                                             src={relatedBlog.image} 
                                                             alt={relatedBlog.name}
+                                                            className="w-full h-48 object-cover group-hover:scale-105 transition-transform duration-300"
                                                             onError={(e) => {
                                                                 e.currentTarget.src = '/placeholder-blog.jpg';
                                                             }}
                                                         />
                                                     </div>
-                                                    
-                                                    <div className="p-6">
-                                                        <div className="flex items-center gap-4 mb-3 text-sm text-gray-500">
-                                                            <div className="flex items-center">
-                                                                <Calendar className="h-4 w-4 mr-1" />
-                                                                {relatedBlog.createdAt && new Date(relatedBlog.createdAt).toLocaleDateString()}
-                                                            </div>
-                                                            {typeof relatedBlog.category === 'object' && (
-                                                                <div className="flex items-center">
-                                                                    <Tag className="h-4 w-4 mr-1" />
-                                                                    {relatedBlog.category.name}
-                                                                </div>
-                                                            )}
+                                                )}
+                                                <div className="p-6">
+                                                    <div className="mb-3">
+                                                        <span className="inline-block px-2 py-1 text-xs font-medium text-pink-600 bg-pink-100 rounded-full">
+                                                            {typeof relatedBlog.category === 'object' ? relatedBlog.category.name : relatedBlog.category}
+                                                        </span>
+                                                    </div>
+                                                    <h3 className="text-lg font-semibold text-gray-900 group-hover:text-pink-600 transition-colors duration-200 line-clamp-2 mb-3">
+                                                        {relatedBlog.name}
+                                                    </h3>
+                                                    <p className="text-gray-600 text-sm line-clamp-3 mb-4">
+                                                        {relatedBlog.description?.replace(/<[^>]*>/g, '').substring(0, 120)}...
+                                                    </p>
+                                                    <div className="flex items-center text-xs text-gray-500">
+                                                        <div className="flex items-center">
+                                                            <User className="mr-1 h-3 w-3" />
+                                                            <span>{typeof relatedBlog.admin === 'object' ? relatedBlog.admin.fullName || 'Admin' : 'Admin'}</span>
                                                         </div>
-
-                                                        <h3 className="font-bold text-lg text-gray-900 group-hover:text-pink-600 transition-colors mb-2">
-                                                            {relatedBlog.name}
-                                                        </h3>
-                                                        <p className="text-gray-600 line-clamp-3">{relatedBlog.description.replace(/<[^>]*>/g, '').substring(0, 100)}...</p>
+                                                        <span className="mx-2">•</span>
+                                                        <span>{Math.max(1, Math.ceil((relatedBlog.description?.length || 0) / 1000))} min read</span>
                                                     </div>
                                                 </div>
-                                            </Link>
-                                        </motion.div>
+                                            </article>
+                                        </Link>
                                     ))}
                                 </div>
                             </motion.div>
-                        </div>
-                    </section>
-                )}
+                        )}
+                    </div>
+                </section>
             </main>
         </div>
-    )
+    );
 } 
