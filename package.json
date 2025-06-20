@@ -12,6 +12,7 @@
     "@heroui/react": "^2.8.0-beta.9",
     "@react-router/node": "^7.5.3",
     "@react-router/serve": "^7.5.3",
+    "axios": "^1.10.0",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.5.0",
     "dotenv": "^16.5.0",
