@@ -21,6 +21,14 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 };
 
+// Helper function to convert File to base64 string
+const fileToBase64 = async (file: File): Promise<string> => {
+  const arrayBuffer = await file.arrayBuffer();
+  const buffer = Buffer.from(arrayBuffer);
+  const base64 = buffer.toString('base64');
+  return `data:${file.type};base64,${base64}`;
+};
+
 export const action: ActionFunction = async ({ request }) => {
   try {
     const formData = await request.formData();
@@ -31,6 +39,13 @@ export const action: ActionFunction = async ({ request }) => {
 
     switch (actionMethod) {
       case "POST": {
+        const imageFile = formData.get("image") as File | null;
+        let imageData = "";
+        
+        if (imageFile && imageFile.size > 0) {
+          imageData = await fileToBase64(imageFile);
+        }
+
         const userData = {
           fullName: formData.get("fullName") as string,
           email: formData.get("email") as string,
@@ -38,28 +53,34 @@ export const action: ActionFunction = async ({ request }) => {
           position: formData.get("position") as string,
           role: formData.get("role") as string,
           password: formData.get("password") as string,
-          image: formData.get("image") as string,
+          image: imageData,
         };
 
         const newUser = new User(userData);
-        await newUser.save();
+        const savedUser = await newUser.save();
         
-        return Response.json({ success: true, message: "User created successfully", data: newUser });
+        return Response.json({ success: true, message: "User created successfully", data: savedUser });
       }
 
       case "PUT": {
         const id = formData.get("id") as string;
-        const updateData = {
+        const imageFile = formData.get("image") as File | null;
+        
+        const updateData: any = {
           fullName: formData.get("fullName") as string,
           email: formData.get("email") as string,
           phone: formData.get("phone") as string,
           position: formData.get("position") as string,
           role: formData.get("role") as string,
-          image: formData.get("image") as string,
         };
 
+        // Only update image if a new file is provided
+        if (imageFile && imageFile.size > 0) {
+          updateData.image = await fileToBase64(imageFile);
+        }
+
         if (formData.get("password")) {
-          (updateData as any).password = formData.get("password") as string;
+          updateData.password = formData.get("password") as string;
         }
 
         const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");

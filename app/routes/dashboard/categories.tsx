@@ -3,6 +3,9 @@ import { Plus, Edit, Trash2, Search, Eye, Tag } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import type { CategoryInterface, UsersInterface } from "~/components/interface";
+import { Button, useDisclosure } from "@heroui/react";
+import { successToast, errorToast } from "~/components/toast";
+import ConfirmModal from "~/components/confirmModal";
 
 export const meta = () => {
   return [
@@ -15,7 +18,6 @@ const Categories = () => {
   const [categories, setCategories] = useState<CategoryInterface[]>([]);
   const [users, setUsers] = useState<UsersInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [searchTerm, setSearchTerm] = useState("");
   
   // Drawer states
@@ -23,6 +25,10 @@ const Categories = () => {
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<CategoryInterface | null>(null);
+  
+  // Confirmation modal
+  const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onOpenChange: onDeleteModalOpenChange } = useDisclosure();
+  const [categoryToDelete, setCategoryToDelete] = useState<string | null>(null);
   
   // Form states
   const [formData, setFormData] = useState({

@@ -18,4 +18,16 @@ export default [
     route("/dashboard/gallery", "routes/dashboard/gallery.tsx"),
     route("/dashboard/directors-bank", "routes/dashboard/directors-bank.tsx"),
   ]),
+
+  // API Routes
+  route("/api/users", "routes/api/users.ts"),
+  route("/api/categories", "routes/api/categories.ts"),
+  route("/api/blogs", "routes/api/blogs.ts"),
+  route("/api/training", "routes/api/training.ts"),
+  route("/api/training-types", "routes/api/training-types.ts"),
+  route("/api/events", "routes/api/events.ts"),
+  route("/api/notices", "routes/api/notices.ts"),
+  route("/api/contact", "routes/api/contact.ts"),
+  route("/api/gallery", "routes/api/gallery.ts"),
+  route("/api/directors-bank", "routes/api/directors-bank.ts"),
 ] satisfies RouteConfig;
