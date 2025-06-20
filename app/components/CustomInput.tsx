@@ -52,7 +52,7 @@ const CustomInput = ({
                 classNames={{
                     label: "font-nunito text-sm !text-white",
                     input: "text-gray-400 placeholder:text-gray-400",
-                    inputWrapper: "border text-gray-400 border-white/20 bg-dashboard-secondary outline-none shadow-sm hover:bg-dashboard-secondary hover:border-white/20 focus-within:border-white/20 focus-within:outline-none focus-within:shadow-none focus-within:ring-0 focus-within:ring-offset-0"
+                    inputWrapper: "border text-gray-400 border-white/20 bg-white dark:bg-gray-800 outline-none shadow-sm hover:bg-dashboard-secondary hover:border-white/20 focus-within:border-white/20 focus-within:outline-none focus-within:shadow-none focus-within:ring-0 focus-within:ring-offset-0"
                 }}
             />
         </div>

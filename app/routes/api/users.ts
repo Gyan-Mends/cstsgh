@@ -1,4 +1,5 @@
 import { type ActionFunction, type LoaderFunction } from "react-router";
+import bcrypt from "bcryptjs";
 import User from "~/model/users";
 
 export const loader: LoaderFunction = async ({ request }) => {
@@ -46,20 +47,35 @@ export const action: ActionFunction = async ({ request }) => {
           imageData = await fileToBase64(imageFile);
         }
 
+        const password = formData.get("password") as string;
+        
+        // Validate required fields
+        if (!password) {
+          return Response.json({ success: false, message: "Password is required" }, { status: 400 });
+        }
+
+        // Hash password
+        const saltRounds = 12;
+        const hashedPassword = await bcrypt.hash(password, saltRounds);
+
         const userData = {
           fullName: formData.get("fullName") as string,
           email: formData.get("email") as string,
           phone: formData.get("phone") as string,
           position: formData.get("position") as string,
           role: formData.get("role") as string,
-          password: formData.get("password") as string,
-          image: imageData,
+          password: hashedPassword,
+          base64Image: imageData, // Use base64Image field as per model
         };
 
         const newUser = new User(userData);
         const savedUser = await newUser.save();
         
-        return Response.json({ success: true, message: "User created successfully", data: savedUser });
+        // Return user data without password
+        const userResponse = savedUser.toObject();
+        const { password: _, ...userWithoutPassword } = userResponse;
+        
+        return Response.json({ success: true, message: "User created successfully", data: userWithoutPassword });
       }
 
       case "PUT": {
@@ -76,11 +92,14 @@ export const action: ActionFunction = async ({ request }) => {
 
         // Only update image if a new file is provided
         if (imageFile && imageFile.size > 0) {
-          updateData.image = await fileToBase64(imageFile);
+          updateData.base64Image = await fileToBase64(imageFile);
         }
 
-        if (formData.get("password")) {
-          updateData.password = formData.get("password") as string;
+        // Hash password if provided
+        const newPassword = formData.get("password") as string;
+        if (newPassword && newPassword.trim() !== "") {
+          const saltRounds = 12;
+          updateData.password = await bcrypt.hash(newPassword, saltRounds);
         }
 
         const updatedUser = await User.findByIdAndUpdate(id, updateData, { new: true }).select("-password");

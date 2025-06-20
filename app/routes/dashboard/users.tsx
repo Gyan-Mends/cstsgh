@@ -68,9 +68,14 @@ const Users = () => {
     e.preventDefault();
     
     try {
-      // Validate required fields
-      if (!formData.fullName || !formData.email || !formData.phone || !formData.position || !formData.password) {
+      // Validate required fields - password only required for create
+      if (!formData.fullName || !formData.email || !formData.phone || !formData.position) {
         errorToast("Please fill in all required fields");
+        return;
+      }
+      
+      if (action === "create" && !formData.password) {
+        errorToast("Password is required for new users");
         return;
       }
       
@@ -82,7 +87,11 @@ const Users = () => {
       form.append("phone", formData.phone);
       form.append("position", formData.position);
       form.append("role", formData.role);
-      form.append("password", formData.password);
+      
+      // Only append password if it's provided (for create or password change)
+      if (formData.password) {
+        form.append("password", formData.password);
+      }
       
       // Handle file upload
       if (formData.image) {
@@ -173,8 +182,8 @@ const Users = () => {
       phone: user.phone,
       position: user.position,
       role: user.role || "admin",
-      password: "",
-      image: null, // Reset file input for edit
+      password: "", // Keep empty for edit
+      image: null, // Will be handled separately
     });
     setIsEditDrawerOpen(true);
   };
@@ -536,16 +545,27 @@ const Users = () => {
             label="New Password (leave blank to keep current)"
             type="password"
             name="password"
-            placeholder="Enter new password"
+            placeholder="Enter new password or leave blank"
             value={formData.password}
             onChange={(e: any) => setFormData({ ...formData, password: e.target.value })}
             endContent={<Lock size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+            description="Leave blank to keep the current password"
           />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Profile Image
             </label>
+            {selectedUser?.image && typeof selectedUser.image === 'string' && (
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
+                <img 
+                  src={selectedUser.image} 
+                  alt="Current profile" 
+                  className="h-20 w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            )}
             <input
               type="file"
               accept="image/*"
@@ -556,18 +576,8 @@ const Users = () => {
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
             />
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              Upload a new image file or leave empty to keep current image
+              Choose a new image file or leave empty to keep current image
             </p>
-            {selectedUser?.image && (
-              <div className="mt-2">
-                <p className="text-sm text-gray-600 dark:text-gray-400">Current image:</p>
-                <img 
-                  src={typeof selectedUser.image === 'string' ? selectedUser.image : ''} 
-                  alt="Current profile" 
-                  className="mt-1 h-16 w-16 rounded-full object-cover"
-                />
-              </div>
-            )}
           </div>
 
           <div className="flex justify-end space-x-3 pt-4">

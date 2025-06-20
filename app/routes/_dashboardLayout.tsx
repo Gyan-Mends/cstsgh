@@ -20,6 +20,8 @@ import {
   ChevronLeft,
   ChevronRight
 } from "lucide-react";
+import { isAuthenticated, getUserData, logout, type UserData } from "~/utils/auth";
+import { successToast } from "~/components/toast";
 
 const DashboardLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -35,8 +37,21 @@ const DashboardLayout = () => {
     }
     return false;
   });
+  const [user, setUser] = useState<UserData | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  // Check authentication on mount
+  useEffect(() => {
+    if (!isAuthenticated()) {
+      navigate("/login");
+      return;
+    }
+    
+    // Get user data
+    const userData = getUserData();
+    setUser(userData);
+  }, [navigate]);
 
   // Apply initial dark mode state to DOM
   useEffect(() => {
@@ -75,9 +90,25 @@ const DashboardLayout = () => {
   };
 
   const handleLogout = () => {
-    // Add logout logic here
-    navigate("/");
+    logout();
+    successToast("Logged out successfully");
+    navigate("/login");
   };
+
+  // Get user initials for avatar
+  const getUserInitials = (fullName: string): string => {
+    return fullName
+      .split(' ')
+      .map(name => name.charAt(0))
+      .join('')
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
+  // Don't render if not authenticated
+  if (!isAuthenticated() || !user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
@@ -144,17 +175,18 @@ const DashboardLayout = () => {
             )}
           </button>
           
-          <button
+          <Link
+            to="/dashboard/settings"
             className={`flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors ${
               isSidebarCollapsed ? 'justify-center' : ''
-            }`}
+            } ${location.pathname === '/dashboard/settings' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : ''}`}
             title={isSidebarCollapsed ? 'Settings' : undefined}
           >
             <Settings size={20} />
             {!isSidebarCollapsed && (
               <span className="ml-3">Settings</span>
             )}
-          </button>
+          </Link>
           
           <button
             onClick={handleLogout}
@@ -191,12 +223,22 @@ const DashboardLayout = () => {
               <div className="flex items-center space-x-4">
                 {/* User Profile */}
                 <div className="flex items-center space-x-3">
-                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-medium">A</span>
+                  <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center overflow-hidden">
+                    {user.base64Image ? (
+                      <img 
+                        src={user.base64Image} 
+                        alt={user.fullName}
+                        className="w-8 h-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white text-sm font-medium">
+                        {getUserInitials(user.fullName)}
+                      </span>
+                    )}
                   </div>
                   <div className="hidden md:block">
-                    <p className="text-sm font-medium text-gray-900 dark:text-white">Admin User</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Administrator</p>
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">{user.fullName}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 capitalize">{user.role}</p>
                   </div>
                 </div>
               </div>

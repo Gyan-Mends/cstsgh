@@ -3,6 +3,7 @@ import { type RouteConfig, index, layout, route } from "@react-router/dev/routes
 export default [
   layout("routes/_publicLayout.tsx", [
     route("/", "routes/home/index.tsx"),
+    route("/login", "routes/login.tsx"),
   ]),
 
   layout("routes/_dashboardLayout.tsx", [
@@ -17,9 +18,11 @@ export default [
     route("/dashboard/contact", "routes/dashboard/contact.tsx"),
     route("/dashboard/gallery", "routes/dashboard/gallery.tsx"),
     route("/dashboard/directors-bank", "routes/dashboard/directors-bank.tsx"),
+    route("/dashboard/settings", "routes/dashboard/settings.tsx"),
   ]),
 
   // API Routes
+  route("/api/auth", "routes/api/auth.ts"),
   route("/api/users", "routes/api/users.ts"),
   route("/api/categories", "routes/api/categories.ts"),
   route("/api/blogs", "routes/api/blogs.ts"),

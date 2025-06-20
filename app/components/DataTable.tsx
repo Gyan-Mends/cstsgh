@@ -166,6 +166,7 @@ function DataTable<T extends Record<string, any>>({
         <div className="flex items-center space-x-4">
           <div className="flex-1">
             <CustomInput
+            className="w-[30vw]"
               type="text"
               placeholder={searchPlaceholder}
               value={searchTerm}
