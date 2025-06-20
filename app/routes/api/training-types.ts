@@ -31,11 +31,21 @@ export const action: ActionFunction = async ({ request }) => {
 
     switch (actionMethod) {
       case "POST": {
+        const imageFile = formData.get("image") as File | null;
+        let imageUrl = "";
+        
+        // Handle file upload - for now, we'll just use a placeholder
+        // In a real application, you'd upload to a file storage service
+        if (imageFile && imageFile.size > 0) {
+          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
+          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
+          // TODO: Implement actual file upload logic
+        }
+
         const trainingTypeData = {
           name: formData.get("name") as string,
           description: formData.get("description") as string,
-          image: formData.get("image") as string,
-          category: formData.get("category") as string,
+          image: imageUrl,
           isActive: formData.get("isActive") === "true",
         };
 
@@ -47,13 +57,26 @@ export const action: ActionFunction = async ({ request }) => {
 
       case "PUT": {
         const id = formData.get("id") as string;
-        const updateData = {
+        const imageFile = formData.get("image") as File | null;
+        let imageUrl = "";
+        
+        // Handle file upload for updates
+        if (imageFile && imageFile.size > 0) {
+          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
+          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
+          // TODO: Implement actual file upload logic
+        }
+
+        const updateData: any = {
           name: formData.get("name") as string,
           description: formData.get("description") as string,
-          image: formData.get("image") as string,
-          category: formData.get("category") as string,
           isActive: formData.get("isActive") === "true",
         };
+
+        // Only update image if a new file was provided
+        if (imageUrl) {
+          updateData.image = imageUrl;
+        }
 
         const updatedTrainingType = await TrainingType.findByIdAndUpdate(id, updateData, { new: true });
         

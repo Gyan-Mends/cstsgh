@@ -31,6 +31,17 @@ export const action: ActionFunction = async ({ request }) => {
 
     switch (actionMethod) {
       case "POST": {
+        const imageFile = formData.get("image") as File | null;
+        let imageUrl = "";
+        
+        // Handle file upload - for now, we'll just use a placeholder
+        // In a real application, you'd upload to a file storage service
+        if (imageFile && imageFile.size > 0) {
+          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
+          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
+          // TODO: Implement actual file upload logic
+        }
+
         const trainingData = {
           title: formData.get("title") as string,
           description: formData.get("description") as string,
@@ -38,7 +49,7 @@ export const action: ActionFunction = async ({ request }) => {
           duration: formData.get("duration") as string,
           format: formData.get("format") as string,
           client: formData.get("client") as string,
-          image: formData.get("image") as string,
+          image: imageUrl,
           trainingTypeId: formData.get("trainingTypeId") as string,
         };
 
@@ -50,16 +61,30 @@ export const action: ActionFunction = async ({ request }) => {
 
       case "PUT": {
         const id = formData.get("id") as string;
-        const updateData = {
+        const imageFile = formData.get("image") as File | null;
+        let imageUrl = "";
+        
+        // Handle file upload for updates
+        if (imageFile && imageFile.size > 0) {
+          // This is a placeholder - in production you'd upload to AWS S3, Cloudinary, etc.
+          imageUrl = `/uploads/${Date.now()}-${imageFile.name}`;
+          // TODO: Implement actual file upload logic
+        }
+
+        const updateData: any = {
           title: formData.get("title") as string,
           description: formData.get("description") as string,
           date: formData.get("date") as string,
           duration: formData.get("duration") as string,
           format: formData.get("format") as string,
           client: formData.get("client") as string,
-          image: formData.get("image") as string,
           trainingTypeId: formData.get("trainingTypeId") as string,
         };
+
+        // Only update image if a new file was provided
+        if (imageUrl) {
+          updateData.image = imageUrl;
+        }
 
         const updatedTraining = await Training.findByIdAndUpdate(id, updateData, { new: true });
         

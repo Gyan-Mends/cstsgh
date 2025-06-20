@@ -72,8 +72,9 @@ export interface TrainingTypeInterface {
     name: string;
     description: string;
     image: string;
-    category: string;
     isActive: boolean;
+    createdAt?: string;
+    updatedAt?: string;
 }
 
 export interface TrainingTypeResponse {

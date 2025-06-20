@@ -35,7 +35,7 @@ const Blogs = () => {
   const [formData, setFormData] = useState({
     name: "",
     description: "",
-    image: "",
+    image: null as File | null,
     category: "",
     admin: "",
     status: "draft" as "draft" | "review" | "published",
@@ -98,9 +98,16 @@ const Blogs = () => {
       }
       
       const form = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value);
-      });
+      form.append("name", formData.name);
+      form.append("description", formData.description);
+      form.append("category", formData.category);
+      form.append("admin", formData.admin);
+      form.append("status", formData.status);
+      
+      // Handle file upload
+      if (formData.image) {
+        form.append("image", formData.image);
+      }
       
       if (action === "edit" && selectedBlog) {
         form.append("_method", "PUT");
@@ -168,7 +175,7 @@ const Blogs = () => {
     setFormData({
       name: "",
       description: "",
-      image: "",
+      image: null,
       category: "",
       admin: "",
       status: "draft",
@@ -182,7 +189,7 @@ const Blogs = () => {
     setFormData({
       name: blog.name,
       description: blog.description,
-      image: blog.image,
+      image: null, // Reset file input for edit
       category: typeof blog.category === 'string' ? blog.category : blog.category._id,
       admin: typeof blog.admin === 'string' ? blog.admin : blog.admin?._id || "",
       status: blog.status || "draft",
@@ -206,7 +213,7 @@ const Blogs = () => {
           <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
             {record.image ? (
               <img 
-                src={record.image} 
+                src={typeof record.image === 'string' ? record.image : ''} 
                 alt={record.name}
                 className="h-10 w-10 rounded-lg object-cover"
               />
@@ -219,7 +226,7 @@ const Blogs = () => {
               {record.name}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-              {record.description}
+              {record.description.length > 50 ? record.description.substring(0, 50) + '...' : record.description}
             </div>
           </div>
         </div>
@@ -350,7 +357,7 @@ const Blogs = () => {
           resetForm();
         }}
         title="Create New Blog"
-        size="md"
+        size="lg"
       >
         <form onSubmit={(e) => handleSubmit(e, "create")} className="space-y-6">
           <CustomInput
@@ -370,23 +377,31 @@ const Blogs = () => {
             </label>
             <textarea
               required
-              rows={4}
+              rows={6}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter blog description"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter blog description..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-vertical"
             />
           </div>
 
-          <CustomInput
-            label="Image URL"
-            type="url"
-            name="image"
-            placeholder="Enter image URL"
-            value={formData.image}
-            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
-            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Blog Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setFormData({ ...formData, image: file });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Upload an image file for the blog post
+            </p>
+          </div>
 
           <Select
             label="Category"
@@ -404,7 +419,7 @@ const Blogs = () => {
             }}
           >
             {categories.map((category) => (
-              <SelectItem key={category._id || ""} value={category._id}>
+              <SelectItem key={category._id || ""}>
                 {category.name}
               </SelectItem>
             ))}
@@ -426,7 +441,7 @@ const Blogs = () => {
             }}
           >
             {users.map((user) => (
-              <SelectItem key={user._id || ""} value={user._id}>
+              <SelectItem key={user._id || ""}>
                 {user.fullName}
               </SelectItem>
             ))}
@@ -483,7 +498,7 @@ const Blogs = () => {
           resetForm();
         }}
         title="Edit Blog"
-        size="md"
+        size="lg"
       >
         <form onSubmit={(e) => handleSubmit(e, "edit")} className="space-y-6">
           <CustomInput
@@ -503,23 +518,41 @@ const Blogs = () => {
             </label>
             <textarea
               required
-              rows={4}
+              rows={6}
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Enter blog description"
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              placeholder="Enter blog description..."
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-vertical"
             />
           </div>
 
-          <CustomInput
-            label="Image URL"
-            type="url"
-            name="image"
-            placeholder="Enter image URL"
-            value={formData.image}
-            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
-            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Blog Image
+            </label>
+            {selectedBlog?.image && typeof selectedBlog.image === 'string' && (
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
+                <img 
+                  src={selectedBlog.image} 
+                  alt="Current blog" 
+                  className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setFormData({ ...formData, image: file });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Choose a new image file or leave empty to keep current image
+            </p>
+          </div>
 
           <Select
             label="Category"
@@ -537,7 +570,7 @@ const Blogs = () => {
             }}
           >
             {categories.map((category) => (
-              <SelectItem key={category._id || ""} value={category._id}>
+              <SelectItem key={category._id || ""}>
                 {category.name}
               </SelectItem>
             ))}
@@ -559,7 +592,7 @@ const Blogs = () => {
             }}
           >
             {users.map((user) => (
-              <SelectItem key={user._id || ""} value={user._id}>
+              <SelectItem key={user._id || ""}>
                 {user.fullName}
               </SelectItem>
             ))}
@@ -613,13 +646,13 @@ const Blogs = () => {
         isOpen={isViewDrawerOpen}
         onClose={() => setIsViewDrawerOpen(false)}
         title="Blog Details"
-        size="md"
+        size="lg"
       >
         {selectedBlog && (
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
-                {selectedBlog.image ? (
+                {selectedBlog.image && typeof selectedBlog.image === 'string' ? (
                   <img 
                     src={selectedBlog.image} 
                     alt={selectedBlog.name}
@@ -640,7 +673,9 @@ const Blogs = () => {
             <div className="grid grid-cols-1 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
-                <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedBlog.description}</p>
+                <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{selectedBlog.description}</p>
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Category</label>

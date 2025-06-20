@@ -38,7 +38,7 @@ const Training = () => {
     duration: "",
     format: "",
     client: "",
-    image: "",
+    image: null as File | null,
     trainingTypeId: "",
   });
 
@@ -88,9 +88,18 @@ const Training = () => {
       }
       
       const form = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        form.append(key, value);
-      });
+      form.append("title", formData.title);
+      form.append("description", formData.description);
+      form.append("date", formData.date);
+      form.append("duration", formData.duration);
+      form.append("format", formData.format);
+      form.append("client", formData.client);
+      form.append("trainingTypeId", formData.trainingTypeId);
+      
+      // Handle file upload
+      if (formData.image) {
+        form.append("image", formData.image);
+      }
       
       if (action === "edit" && selectedTraining) {
         form.append("_method", "PUT");
@@ -162,7 +171,7 @@ const Training = () => {
       duration: "",
       format: "",
       client: "",
-      image: "",
+      image: null,
       trainingTypeId: "",
     });
     setSelectedTraining(null);
@@ -178,7 +187,7 @@ const Training = () => {
       duration: training.duration,
       format: training.format,
       client: training.client,
-      image: training.image,
+      image: null, // Reset file input for edit
       trainingTypeId: training.trainingTypeId || "",
     });
     setIsEditDrawerOpen(true);
@@ -410,15 +419,23 @@ const Training = () => {
             endContent={<Users size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
           />
 
-          <CustomInput
-            label="Image URL"
-            type="url"
-            name="image"
-            placeholder="Enter image URL"
-            value={formData.image}
-            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
-            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Training Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setFormData({ ...formData, image: file });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Upload an image file for the training session
+            </p>
+          </div>
 
           <Select
             label="Training Type"
@@ -551,15 +568,33 @@ const Training = () => {
             endContent={<Users size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
           />
 
-          <CustomInput
-            label="Image URL"
-            type="url"
-            name="image"
-            placeholder="Enter image URL"
-            value={formData.image}
-            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
-            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-          />
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Training Image
+            </label>
+            {selectedTraining?.image && typeof selectedTraining.image === 'string' && (
+              <div className="mb-3">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
+                <img 
+                  src={selectedTraining.image} 
+                  alt="Current training" 
+                  className="h-20 w-32 rounded-lg object-cover border-2 border-gray-200 dark:border-gray-600"
+                />
+              </div>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0] || null;
+                setFormData({ ...formData, image: file });
+              }}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+            />
+            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+              Choose a new image file or leave empty to keep current image
+            </p>
+          </div>
 
           <Select
             label="Training Type"
