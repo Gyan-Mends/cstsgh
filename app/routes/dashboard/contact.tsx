@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Eye, Trash2, Phone, Mail, User, Calendar, MessageSquare } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
-import DataTable from "~/components/DataTable";
+import DataTable, { type Column } from "~/components/DataTable";
 import type { ContactInterface } from "~/components/interface";
+import { Button, useDisclosure } from "@heroui/react";
+import { successToast, errorToast } from "~/components/toast";
+import ConfirmModal from "~/components/confirmModal";
 
 export const meta = () => {
   return [
@@ -15,7 +18,10 @@ export const meta = () => {
 const Contact = () => {
   const [contacts, setContacts] = useState<ContactInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
+  
+  // Confirmation modal
+  const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onOpenChange: onDeleteModalOpenChange } = useDisclosure();
+  const [contactToDelete, setContactToDelete] = useState<string | null>(null);
   
   // Drawer states
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
@@ -31,10 +37,10 @@ const Contact = () => {
       if (data.success) {
         setContacts(data.data);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to fetch contact messages");
+      errorToast("Failed to fetch contact messages");
     } finally {
       setLoading(false);
     }
@@ -44,14 +50,20 @@ const Contact = () => {
     fetchContacts();
   }, []);
 
+  // Open delete confirmation modal
+  const openDeleteModal = (id: string) => {
+    setContactToDelete(id);
+    onDeleteModalOpen();
+  };
+
   // Handle delete
-  const handleDelete = async (contact: ContactInterface) => {
-    if (!confirm("Are you sure you want to delete this contact message?")) return;
+  const handleDelete = async () => {
+    if (!contactToDelete) return;
     
     try {
       const form = new FormData();
       form.append("_method", "DELETE");
-      form.append("id", contact._id);
+      form.append("id", contactToDelete);
 
       const response = await fetch("/api/contact", {
         method: "POST",
@@ -62,11 +74,14 @@ const Contact = () => {
       
       if (data.success) {
         await fetchContacts();
+        successToast("Contact message deleted successfully!");
+        onDeleteModalOpenChange();
+        setContactToDelete(null);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to delete contact message");
+      errorToast("Failed to delete contact message");
     }
   };
 

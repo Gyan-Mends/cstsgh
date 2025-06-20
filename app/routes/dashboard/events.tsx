@@ -1,8 +1,12 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Eye, Calendar, FileText, MapPin, Image } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, Calendar, MapPin, Clock, Image } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
+import DataTable, { type Column } from "~/components/DataTable";
 import type { EventInterface } from "~/components/interface";
+import { Button, useDisclosure } from "@heroui/react";
+import { successToast, errorToast } from "~/components/toast";
+import ConfirmModal from "~/components/confirmModal";
 
 export const meta = () => {
   return [
@@ -14,8 +18,6 @@ export const meta = () => {
 const Events = () => {
   const [events, setEvents] = useState<EventInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Drawer states
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
@@ -23,11 +25,16 @@ const Events = () => {
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<EventInterface | null>(null);
   
+  // Confirmation modal
+  const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onOpenChange: onDeleteModalOpenChange } = useDisclosure();
+  const [eventToDelete, setEventToDelete] = useState<string | null>(null);
+  
   // Form states
   const [formData, setFormData] = useState({
     title: "",
     description: "",
     date: "",
+    duration: "",
     location: "",
     image: "",
   });
@@ -42,10 +49,10 @@ const Events = () => {
       if (data.success) {
         setEvents(data.data);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to fetch events");
+      errorToast("Failed to fetch events");
     } finally {
       setLoading(false);
     }
@@ -60,6 +67,12 @@ const Events = () => {
     e.preventDefault();
     
     try {
+      // Validate required fields
+      if (!formData.title || !formData.description || !formData.date) {
+        errorToast("Please fill in all required fields");
+        return;
+      }
+      
       const form = new FormData();
       Object.entries(formData).forEach(([key, value]) => {
         form.append(key, value);
@@ -82,22 +95,29 @@ const Events = () => {
         resetForm();
         setIsCreateDrawerOpen(false);
         setIsEditDrawerOpen(false);
+        successToast(action === "create" ? "Event created successfully!" : "Event updated successfully!");
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to save event");
+      errorToast("Failed to save event");
     }
   };
 
+  // Open delete confirmation modal
+  const openDeleteModal = (id: string) => {
+    setEventToDelete(id);
+    onDeleteModalOpen();
+  };
+
   // Handle delete
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this event?")) return;
+  const handleDelete = async () => {
+    if (!eventToDelete) return;
     
     try {
       const form = new FormData();
       form.append("_method", "DELETE");
-      form.append("id", id);
+      form.append("id", eventToDelete);
 
       const response = await fetch("/api/events", {
         method: "POST",
@@ -108,11 +128,14 @@ const Events = () => {
       
       if (data.success) {
         await fetchEvents();
+        successToast("Event deleted successfully!");
+        onDeleteModalOpenChange();
+        setEventToDelete(null);
       } else {
-        setError(data.message);
+        errorToast(data.message);
       }
     } catch (err) {
-      setError("Failed to delete event");
+      errorToast("Failed to delete event");
     }
   };
 
@@ -122,6 +145,7 @@ const Events = () => {
       title: "",
       description: "",
       date: "",
+      duration: "",
       location: "",
       image: "",
     });
@@ -135,6 +159,7 @@ const Events = () => {
       title: event.title,
       description: event.description,
       date: event.date,
+      duration: event.duration,
       location: event.location,
       image: event.image,
     });
@@ -147,109 +172,98 @@ const Events = () => {
     setIsViewDrawerOpen(true);
   };
 
-  // Filter events based on search
-  const filteredEvents = events.filter(event =>
-    event.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    event.location.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const EventForm = ({ isEdit = false }: { isEdit?: boolean }) => (
-    <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
-      <CustomInput
-        label="Event Title"
-        type="text"
-        isRequired={true}
-        name="title"
-        placeholder="Enter event title"
-        value={formData.title}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, title: e.target.value })}
-        endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-      />
-
-      <div>
-        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-          Description
-        </label>
-        <textarea
-          required
-          rows={4}
-          value={formData.description}
-          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-          className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
-        />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <CustomInput
-          label="Date"
-          type="date"
-          isRequired={true}
-          name="date"
-          value={formData.date}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, date: e.target.value })}
-        />
-
-        <CustomInput
-          label="Location"
-          type="text"
-          isRequired={true}
-          name="location"
-          placeholder="Enter event location"
-          value={formData.location}
-          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, location: e.target.value })}
-          endContent={<MapPin size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-        />
-      </div>
-
-      <CustomInput
-        label="Image URL"
-        type="url"
-        name="image"
-        placeholder="Enter image URL"
-        value={formData.image}
-        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({ ...formData, image: e.target.value })}
-        endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
-      />
-
-      <div className="flex justify-end space-x-3">
-        <button
-          type="button"
-          onClick={() => {
-            resetForm();
-            setIsCreateDrawerOpen(false);
-            setIsEditDrawerOpen(false);
-          }}
-          className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
-        >
-          Cancel
-        </button>
-        <button
-          type="submit"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-        >
-          {isEdit ? "Update Event" : "Create Event"}
-        </button>
-      </div>
-    </form>
-  );
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
-  }
+  // Define table columns
+  const columns: Column<EventInterface>[] = [
+    {
+      key: 'title',
+      title: 'Event',
+      render: (value, record) => (
+        <div className="flex items-center">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center overflow-hidden">
+            {record.image ? (
+              <img 
+                src={record.image} 
+                alt={record.title}
+                className="h-10 w-10 rounded-lg object-cover"
+              />
+            ) : (
+              <Calendar size={16} className="text-white" />
+            )}
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900 dark:text-white">
+              {record.title}
+            </div>
+            <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
+              {record.description}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'date',
+      title: 'Date & Duration',
+      render: (value, record) => (
+        <div>
+          <div className="text-sm text-gray-900 dark:text-white">
+            {new Date(value).toLocaleDateString()}
+          </div>
+          {record.duration && (
+            <div className="text-sm text-gray-500 dark:text-gray-400">{record.duration}</div>
+          )}
+        </div>
+      ),
+    },
+    {
+      key: 'location',
+      title: 'Location',
+      render: (value) => (
+        <div className="text-sm text-gray-900 dark:text-white">{value}</div>
+      ),
+    },
+    {
+      key: '_id',
+      title: 'Actions',
+      sortable: false,
+      searchable: false,
+      align: 'right' as const,
+      render: (value, record) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openViewDrawer(record);
+            }}
+            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditDrawer(record);
+            }}
+            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteModal(record._id || "");
+            }}
+            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      {error && (
-        <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 px-4 py-3 rounded-lg">
-          {error}
-        </div>
-      )}
-
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
         <div>
@@ -265,85 +279,15 @@ const Events = () => {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <CustomInput
-            type="text"
-            placeholder="Search events..."
-            value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            endContent={<Search className="text-gray-400 w-5 h-5" />}
-          />
-        </div>
-      </div>
-
-      {/* Events Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredEvents.map((event) => (
-          <div key={event._id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
-            <div className="aspect-video bg-gray-200 dark:bg-gray-700">
-              {event.image && (
-                <img
-                  src={event.image}
-                  alt={event.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              )}
-            </div>
-            <div className="p-6">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex items-center space-x-2">
-                  <Calendar size={16} className="text-blue-600 dark:text-blue-400" />
-                  <span className="text-xs text-gray-500 dark:text-gray-400">
-                    {new Date(event.date).toLocaleDateString()}
-                  </span>
-                </div>
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => openViewDrawer(event)}
-                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button
-                    onClick={() => openEditDrawer(event)}
-                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(event._id)}
-                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-              
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2 line-clamp-2">
-                {event.title}
-              </h3>
-              <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 mb-3">
-                {event.description}
-              </p>
-              <div className="text-xs text-gray-500 dark:text-gray-400">
-                📍 {event.location}
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredEvents.length === 0 && (
-        <div className="text-center py-12">
-          <Calendar size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">No events found</p>
-        </div>
-      )}
+      {/* DataTable */}
+      <DataTable
+        data={events}
+        columns={columns}
+        loading={loading}
+        searchPlaceholder="Search events by title, description, or location..."
+        emptyText="No events found"
+        pageSize={10}
+      />
 
       {/* Create Drawer */}
       <Drawer
@@ -355,7 +299,92 @@ const Events = () => {
         title="Create New Event"
         size="md"
       >
-        <EventForm />
+        <form onSubmit={(e) => handleSubmit(e, "create")} className="space-y-6">
+          <CustomInput
+            label="Event Title"
+            type="text"
+            isRequired={true}
+            name="title"
+            placeholder="Enter event title"
+            value={formData.title}
+            onChange={(e: any) => setFormData({ ...formData, title: e.target.value })}
+            endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter event description"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <CustomInput
+            label="Date"
+            type="date"
+            isRequired={true}
+            name="date"
+            value={formData.date}
+            onChange={(e: any) => setFormData({ ...formData, date: e.target.value })}
+            endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Time"
+            type="time"
+            name="time"
+            value={formData.time}
+            onChange={(e: any) => setFormData({ ...formData, time: e.target.value })}
+            endContent={<Clock size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Location"
+            type="text"
+            name="location"
+            placeholder="Enter event location"
+            value={formData.location}
+            onChange={(e: any) => setFormData({ ...formData, location: e.target.value })}
+            endContent={<MapPin size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Image URL"
+            type="url"
+            name="image"
+            placeholder="Enter image URL"
+            value={formData.image}
+            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
+            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="flat"
+              color="default"
+              onPress={() => {
+                resetForm();
+                setIsCreateDrawerOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Create Event
+            </Button>
+          </div>
+        </form>
       </Drawer>
 
       {/* Edit Drawer */}
@@ -368,7 +397,92 @@ const Events = () => {
         title="Edit Event"
         size="md"
       >
-        <EventForm isEdit />
+        <form onSubmit={(e) => handleSubmit(e, "edit")} className="space-y-6">
+          <CustomInput
+            label="Event Title"
+            type="text"
+            isRequired={true}
+            name="title"
+            placeholder="Enter event title"
+            value={formData.title}
+            onChange={(e: any) => setFormData({ ...formData, title: e.target.value })}
+            endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+              Description *
+            </label>
+            <textarea
+              required
+              rows={4}
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Enter event description"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+            />
+          </div>
+
+          <CustomInput
+            label="Date"
+            type="date"
+            isRequired={true}
+            name="date"
+            value={formData.date}
+            onChange={(e: any) => setFormData({ ...formData, date: e.target.value })}
+            endContent={<Calendar size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Time"
+            type="time"
+            name="time"
+            value={formData.time}
+            onChange={(e: any) => setFormData({ ...formData, time: e.target.value })}
+            endContent={<Clock size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Location"
+            type="text"
+            name="location"
+            placeholder="Enter event location"
+            value={formData.location}
+            onChange={(e: any) => setFormData({ ...formData, location: e.target.value })}
+            endContent={<MapPin size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <CustomInput
+            label="Image URL"
+            type="url"
+            name="image"
+            placeholder="Enter image URL"
+            value={formData.image}
+            onChange={(e: any) => setFormData({ ...formData, image: e.target.value })}
+            endContent={<Image size={18} className="text-default-400 pointer-events-none flex-shrink-0" />}
+          />
+
+          <div className="flex justify-end space-x-3 pt-4">
+            <Button
+              type="button"
+              variant="flat"
+              color="default"
+              onPress={() => {
+                resetForm();
+                setIsEditDrawerOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              color="primary"
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              Update Event
+            </Button>
+          </div>
+        </form>
       </Drawer>
 
       {/* View Drawer */}
@@ -380,27 +494,23 @@ const Events = () => {
       >
         {selectedEvent && (
           <div className="space-y-6">
-            <div className="aspect-video bg-gray-200 dark:bg-gray-700 rounded-lg overflow-hidden">
-              {selectedEvent.image && (
-                <img
-                  src={selectedEvent.image}
-                  alt={selectedEvent.title}
-                  className="w-full h-full object-cover"
-                />
-              )}
-            </div>
-            
-            <div>
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">
-                {selectedEvent.title}
-              </h3>
-              <div className="flex items-center space-x-4 mb-4">
-                <div className="flex items-center space-x-2">
-                  <Calendar size={16} className="text-blue-600 dark:text-blue-400" />
-                  <span className="text-sm text-gray-600 dark:text-gray-400">
-                    {new Date(selectedEvent.date).toLocaleDateString()}
-                  </span>
-                </div>
+            <div className="flex items-center space-x-4">
+              <div className="h-16 w-16 rounded-lg bg-gradient-to-br from-orange-500 to-red-600 flex items-center justify-center overflow-hidden">
+                {selectedEvent.image ? (
+                  <img 
+                    src={selectedEvent.image} 
+                    alt={selectedEvent.title}
+                    className="h-16 w-16 rounded-lg object-cover"
+                  />
+                ) : (
+                  <Calendar size={24} className="text-white" />
+                )}
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                  {selectedEvent.title}
+                </h3>
+                <p className="text-gray-600 dark:text-gray-400">Event</p>
               </div>
             </div>
             
@@ -410,13 +520,49 @@ const Events = () => {
                 <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.description}</p>
               </div>
               <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">
+                  {new Date(selectedEvent.date).toLocaleDateString()}
+                </p>
+              </div>
+              {selectedEvent.time && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Time</label>
+                  <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.time}</p>
+                </div>
+              )}
+              <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Location</label>
-                <p className="mt-1 text-sm text-gray-900 dark:text-white">📍 {selectedEvent.location}</p>
+                <p className="mt-1 text-sm text-gray-900 dark:text-white">{selectedEvent.location}</p>
               </div>
             </div>
           </div>
         )}
       </Drawer>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={onDeleteModalOpenChange}
+        header="Delete Event"
+        content="Are you sure you want to delete this event? This action cannot be undone."
+      >
+        <div className="flex gap-3">
+          <Button
+            variant="flat"
+            color="default"
+            onPress={() => onDeleteModalOpenChange()}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="danger"
+            onPress={handleDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };
