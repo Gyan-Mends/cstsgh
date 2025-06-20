@@ -172,7 +172,7 @@ const DashboardLayout = () => {
       </div>
 
       {/* Main Content Area */}
-      <div className={`transition-all duration-300 ${
+      <div className={`dashboard-content transition-all duration-300 ${
         isSidebarCollapsed ? 'ml-16' : 'ml-64'
       }`}>
         {/* Top Header */}

@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Search, Eye, User, Mail, Phone, Briefcase, Lock, ImageIcon } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
+import DataTable, { type Column } from "~/components/DataTable";
 import type { UsersInterface } from "~/components/interface";
 import { Button, Select, SelectItem, useDisclosure } from "@heroui/react";
 import { successToast, errorToast } from "~/components/toast";
@@ -17,7 +18,6 @@ export const meta = () => {
 const Users = () => {
   const [users, setUsers] = useState<UsersInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Drawer states
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
@@ -185,12 +185,103 @@ const Users = () => {
     setIsViewDrawerOpen(true);
   };
 
-  // Filter users based on search
-  const filteredUsers = users.filter(user =>
-    user.fullName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.position.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Define table columns
+  const columns: Column<UsersInterface>[] = [
+    {
+      key: 'fullName',
+      title: 'User',
+      render: (value, record) => (
+        <div className="flex items-center">
+          <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
+            {record.image ? (
+              <img 
+                src={typeof record.image === 'string' ? record.image : ''} 
+                alt={record.fullName}
+                className="h-10 w-10 rounded-full object-cover"
+              />
+            ) : (
+              <span className="text-white font-medium text-sm">
+                {record.fullName.charAt(0).toUpperCase()}
+              </span>
+            )}
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900 dark:text-white">
+              {record.fullName}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'email',
+      title: 'Contact',
+      render: (value, record) => (
+        <div>
+          <div className="text-sm text-gray-900 dark:text-white">{record.email}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-400">{record.phone}</div>
+        </div>
+      ),
+    },
+    {
+      key: 'role',
+      title: 'Role',
+      render: (value) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+          value === "admin" 
+            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+            : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+        }`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: 'position',
+      title: 'Position',
+      render: (value) => (
+        <div className="text-sm text-gray-900 dark:text-white">{value}</div>
+      ),
+    },
+    {
+      key: '_id',
+      title: 'Actions',
+      sortable: false,
+      searchable: false,
+      align: 'right' as const,
+      render: (value, record) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openViewDrawer(record);
+            }}
+            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditDrawer(record);
+            }}
+            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteModal(record._id || "");
+            }}
+            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
 
 
@@ -219,117 +310,15 @@ const Users = () => {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <CustomInput
-            type="text"
-            placeholder="Search users..."
-            value={searchTerm}
-            onChange={(e: any) => setSearchTerm(e.target.value)}
-            endContent={<Search className="text-gray-400 w-5 h-5" />}
-          />
-        </div>
-      </div>
-
-      {/* Users Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gray-50 dark:bg-gray-700">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  User
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Contact
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Role
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Position
-                </th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredUsers.map((user) => (
-                <tr key={user._id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
-                        {user.image ? (
-                          <img 
-                            src={typeof user.image === 'string' ? user.image : ''} 
-                            alt={user.fullName}
-                            className="h-10 w-10 rounded-full object-cover"
-                          />
-                        ) : (
-                          <span className="text-white font-medium text-sm">
-                            {user.fullName.charAt(0).toUpperCase()}
-                          </span>
-                        )}
-                      </div>
-                      <div className="ml-4">
-                        <div className="text-sm font-medium text-gray-900 dark:text-white">
-                          {user.fullName}
-                        </div>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-900 dark:text-white">{user.email}</div>
-                    <div className="text-sm text-gray-500 dark:text-gray-400">{user.phone}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                      user.role === "admin" 
-                        ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                        : "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                    }`}>
-                      {user.role}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {user.position}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      <button
-                        onClick={() => openViewDrawer(user)}
-                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                      >
-                        <Eye size={16} />
-                      </button>
-                      <button
-                        onClick={() => openEditDrawer(user)}
-                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                      >
-                        <Edit size={16} />
-                      </button>
-                      <button
-                                                    onClick={() => openDeleteModal(user._id || "")}
-                        className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredUsers.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-gray-500 dark:text-gray-400">No users found</p>
-          </div>
-        )}
-      </div>
+      {/* DataTable */}
+      <DataTable
+        data={users}
+        columns={columns}
+        loading={loading}
+        searchPlaceholder="Search users by name, email, or position..."
+        emptyText="No users found"
+        pageSize={10}
+      />
 
       {/* Create Drawer */}
       <Drawer
@@ -615,9 +604,9 @@ const Users = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
-                {selectedUser.image ? (
+                {selectedUser.image && typeof selectedUser.image === 'string' ? (
                   <img 
-                    src={typeof selectedUser.image === 'string' ? selectedUser.image : ''} 
+                    src={selectedUser.image} 
                     alt={selectedUser.fullName}
                     className="h-16 w-16 rounded-full object-cover"
                   />

@@ -1,113 +1,157 @@
-import { useState } from "react";
-import { Search, ChevronUp, ChevronDown, Eye, Edit, Trash2 } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { Search, ChevronUp, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import CustomInput from "./CustomInput";
+import { Button } from "@heroui/react";
 
-interface Column<T> {
+export interface Column<T> {
   key: keyof T | string;
   title: string;
   sortable?: boolean;
-  render?: (value: any, record: T) => React.ReactNode;
+  searchable?: boolean;
+  render?: (value: any, record: T, index: number) => React.ReactNode;
   width?: string;
+  align?: 'left' | 'center' | 'right';
 }
 
-interface Action<T> {
-  icon: React.ComponentType<{ size?: number }>;
-  label: string;
-  onClick: (record: T) => void;
-  color?: "blue" | "indigo" | "red" | "green" | "yellow";
-}
-
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
-  actions?: Action<T>[];
-  searchPlaceholder?: string;
-  emptyMessage?: string;
-  emptyIcon?: React.ComponentType<{ size?: number }>;
   loading?: boolean;
-  onSearch?: (searchTerm: string) => void;
-  searchable?: boolean;
+  pageSize?: number;
+  searchPlaceholder?: string;
+  emptyText?: string;
+  showSearch?: boolean;
+  showPagination?: boolean;
+  onRowClick?: (record: T, index: number) => void;
+  rowClassName?: (record: T, index: number) => string;
+  tableClassName?: string;
 }
 
-const DataTable = <T extends Record<string, any>>({
+function DataTable<T extends Record<string, any>>({
   data,
   columns,
-  actions = [],
-  searchPlaceholder = "Search...",
-  emptyMessage = "No data found",
-  emptyIcon: EmptyIcon,
   loading = false,
-  onSearch,
-  searchable = true,
-}: DataTableProps<T>) => {
+  pageSize = 10,
+  searchPlaceholder = "Search...",
+  emptyText = "No data available",
+  showSearch = true,
+  showPagination = true,
+  onRowClick,
+  rowClassName,
+  tableClassName = "",
+}: DataTableProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Handle search
-  const handleSearch = (value: string) => {
-    setSearchTerm(value);
-    if (onSearch) {
-      onSearch(value);
-    }
-  };
+  // Get searchable columns
+  const searchableColumns = useMemo(() => 
+    columns.filter(col => col.searchable !== false), 
+    [columns]
+  );
+
+  // Filter data based on search term
+  const filteredData = useMemo(() => {
+    if (!searchTerm) return data;
+    
+    return data.filter(item => 
+      searchableColumns.some(column => {
+        const value = item[column.key as keyof T];
+        if (value === null || value === undefined) return false;
+        return String(value).toLowerCase().includes(searchTerm.toLowerCase());
+      })
+    );
+  }, [data, searchTerm, searchableColumns]);
+
+  // Sort data
+  const sortedData = useMemo(() => {
+    if (!sortConfig) return filteredData;
+
+    return [...filteredData].sort((a, b) => {
+      const aValue = a[sortConfig.key as keyof T];
+      const bValue = b[sortConfig.key as keyof T];
+
+      if (aValue === null || aValue === undefined) return 1;
+      if (bValue === null || bValue === undefined) return -1;
+
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [filteredData, sortConfig]);
+
+  // Paginate data
+  const paginatedData = useMemo(() => {
+    if (!showPagination) return sortedData;
+    
+    const startIndex = (currentPage - 1) * pageSize;
+    return sortedData.slice(startIndex, startIndex + pageSize);
+  }, [sortedData, currentPage, pageSize, showPagination]);
+
+  // Calculate pagination info
+  const totalPages = Math.ceil(sortedData.length / pageSize);
+  const startRecord = (currentPage - 1) * pageSize + 1;
+  const endRecord = Math.min(currentPage * pageSize, sortedData.length);
 
   // Handle sorting
   const handleSort = (columnKey: string) => {
-    if (sortColumn === columnKey) {
-      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
-    } else {
-      setSortColumn(columnKey);
-      setSortDirection("asc");
-    }
-  };
+    const column = columns.find(col => col.key === columnKey);
+    if (!column || column.sortable === false) return;
 
-  // Get nested value from object
-  const getNestedValue = (obj: any, path: string) => {
-    return path.split('.').reduce((current, key) => current?.[key], obj);
-  };
-
-  // Filter and sort data
-  const processedData = data
-    .filter((item) => {
-      if (!searchTerm || onSearch) return true;
-      
-      return columns.some((column) => {
-        const value = getNestedValue(item, column.key as string);
-        return value?.toString().toLowerCase().includes(searchTerm.toLowerCase());
-      });
-    })
-    .sort((a, b) => {
-      if (!sortColumn) return 0;
-      
-      const aValue = getNestedValue(a, sortColumn);
-      const bValue = getNestedValue(b, sortColumn);
-      
-      if (aValue == null && bValue == null) return 0;
-      if (aValue == null) return 1;
-      if (bValue == null) return -1;
-      
-      const comparison = aValue.toString().localeCompare(bValue.toString(), undefined, {
-        numeric: true,
-        sensitivity: 'base'
-      });
-      
-      return sortDirection === "asc" ? comparison : -comparison;
+    setSortConfig(prevConfig => {
+      if (prevConfig?.key === columnKey) {
+        if (prevConfig.direction === 'asc') {
+          return { key: columnKey, direction: 'desc' };
+        } else {
+          return null; // Reset sorting
+        }
+      } else {
+        return { key: columnKey, direction: 'asc' };
+      }
     });
+  };
 
-  const getActionColor = (color: string = "blue") => {
-    const colors = {
-      blue: "text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300",
-      indigo: "text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300",
-      red: "text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300",
-      green: "text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300",
-      yellow: "text-yellow-600 hover:text-yellow-900 dark:text-yellow-400 dark:hover:text-yellow-300",
-    };
-    return colors[color as keyof typeof colors] || colors.blue;
+  // Handle page change
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // Reset page when search changes
+  React.useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm]);
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = [];
+    const maxVisiblePages = 5;
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      const startPage = Math.max(1, currentPage - 2);
+      const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+      
+      for (let i = startPage; i <= endPage; i++) {
+        pages.push(i);
+      }
+    }
+    
+    return pages;
   };
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
         <div className="flex items-center justify-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
         </div>
@@ -116,113 +160,176 @@ const DataTable = <T extends Record<string, any>>({
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden">
-      {/* Search Bar */}
-      {searchable && (
-        <div className="p-4 border-b border-gray-200 dark:border-gray-700">
-          <div className="relative">
-            <Search size={20} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-            <input
+    <div className="space-y-4">
+      {/* Search */}
+      {showSearch && (
+        <div className="flex items-center space-x-4">
+          <div className="flex-1">
+            <CustomInput
               type="text"
               placeholder={searchPlaceholder}
               value={searchTerm}
-              onChange={(e) => handleSearch(e.target.value)}
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
+              onChange={(e: any) => setSearchTerm(e.target.value)}
+              endContent={<Search className="text-gray-400 w-5 h-5" />}
             />
           </div>
         </div>
       )}
 
       {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="w-full">
-          <thead className="bg-gray-50 dark:bg-gray-700">
-            <tr>
-              {columns.map((column) => (
-                <th
-                  key={column.key as string}
-                  className={`px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider ${
-                    column.sortable ? "cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600" : ""
-                  } ${column.width ? column.width : ""}`}
-                  onClick={() => column.sortable && handleSort(column.key as string)}
-                >
-                  <div className="flex items-center space-x-1">
-                    <span>{column.title}</span>
-                    {column.sortable && (
-                      <div className="flex flex-col">
-                        <ChevronUp 
-                          size={12} 
-                          className={`${
-                            sortColumn === column.key && sortDirection === "asc" 
-                              ? "text-blue-600 dark:text-blue-400" 
-                              : "text-gray-400"
-                          }`} 
-                        />
-                        <ChevronDown 
-                          size={12} 
-                          className={`${
-                            sortColumn === column.key && sortDirection === "desc" 
-                              ? "text-blue-600 dark:text-blue-400" 
-                              : "text-gray-400"
-                          }`} 
-                        />
-                      </div>
-                    )}
-                  </div>
-                </th>
-              ))}
-              {actions.length > 0 && (
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
-                  Actions
-                </th>
-              )}
-            </tr>
-          </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-            {processedData.map((item, index) => (
-              <tr key={item._id || item.id || index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+      <div className={`bg-white dark:bg-gray-800 rounded-lg shadow overflow-hidden ${tableClassName}`}>
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead className="bg-gray-50 dark:bg-gray-700">
+              <tr>
                 {columns.map((column) => (
-                  <td key={column.key as string} className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-white">
-                    {column.render 
-                      ? column.render(getNestedValue(item, column.key as string), item)
-                      : getNestedValue(item, column.key as string)
-                    }
-                  </td>
+                  <th
+                    key={String(column.key)}
+                    className={`px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider ${
+                      column.align === 'center' ? 'text-center' : 
+                      column.align === 'right' ? 'text-right' : 'text-left'
+                    } ${column.sortable !== false ? 'cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-600' : ''}`}
+                    style={{ width: column.width }}
+                    onClick={() => handleSort(String(column.key))}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>{column.title}</span>
+                      {column.sortable !== false && (
+                        <div className="flex flex-col">
+                          <ChevronUp 
+                            size={12} 
+                            className={`${
+                              sortConfig?.key === column.key && sortConfig.direction === 'asc' 
+                                ? 'text-blue-600' : 'text-gray-400'
+                            }`} 
+                          />
+                          <ChevronDown 
+                            size={12} 
+                            className={`-mt-1 ${
+                              sortConfig?.key === column.key && sortConfig.direction === 'desc' 
+                                ? 'text-blue-600' : 'text-gray-400'
+                            }`} 
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </th>
                 ))}
-                {actions.length > 0 && (
-                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                    <div className="flex items-center justify-end space-x-2">
-                      {actions.map((action, actionIndex) => {
-                        const IconComponent = action.icon;
-                        return (
-                          <button
-                            key={actionIndex}
-                            onClick={() => action.onClick(item)}
-                            className={getActionColor(action.color)}
-                            title={action.label}
-                          >
-                            <IconComponent size={16} />
-                          </button>
-                        );
-                      })}
+              </tr>
+            </thead>
+            <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
+              {paginatedData.length === 0 ? (
+                <tr>
+                  <td colSpan={columns.length} className="px-6 py-12 text-center">
+                    <div className="text-gray-500 dark:text-gray-400">
+                      <div className="text-lg mb-2">📄</div>
+                      <p>{emptyText}</p>
                     </div>
                   </td>
-                )}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Empty State */}
-      {processedData.length === 0 && (
-        <div className="text-center py-12">
-          {EmptyIcon && <EmptyIcon size={48} className="mx-auto text-gray-400 mb-4" />}
-          <p className="text-gray-500 dark:text-gray-400">{emptyMessage}</p>
+                </tr>
+              ) : (
+                paginatedData.map((record, index) => (
+                  <tr
+                    key={index}
+                    className={`hover:bg-gray-50 dark:hover:bg-gray-700 ${
+                      onRowClick ? 'cursor-pointer' : ''
+                    } ${rowClassName ? rowClassName(record, index) : ''}`}
+                    onClick={() => onRowClick?.(record, index)}
+                  >
+                    {columns.map((column) => (
+                      <td
+                        key={String(column.key)}
+                        className={`px-6 py-4 whitespace-nowrap ${
+                          column.align === 'center' ? 'text-center' : 
+                          column.align === 'right' ? 'text-right' : 'text-left'
+                        }`}
+                      >
+                        {column.render 
+                          ? column.render(record[column.key as keyof T], record, index)
+                          : String(record[column.key as keyof T] || '')
+                        }
+                      </td>
+                    ))}
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
         </div>
-      )}
+
+        {/* Pagination */}
+        {showPagination && totalPages > 1 && (
+          <div className="bg-white dark:bg-gray-800 px-4 py-3 border-t border-gray-200 dark:border-gray-700 sm:px-6">
+            <div className="flex items-center justify-between">
+              <div className="flex-1 flex justify-between sm:hidden">
+                <Button
+                  variant="flat"
+                  size="sm"
+                  isDisabled={currentPage === 1}
+                  onPress={() => handlePageChange(currentPage - 1)}
+                >
+                  Previous
+                </Button>
+                <Button
+                  variant="flat"
+                  size="sm"
+                  isDisabled={currentPage === totalPages}
+                  onPress={() => handlePageChange(currentPage + 1)}
+                >
+                  Next
+                </Button>
+              </div>
+              <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm text-gray-700 dark:text-gray-300">
+                    Showing <span className="font-medium">{startRecord}</span> to{' '}
+                    <span className="font-medium">{endRecord}</span> of{' '}
+                    <span className="font-medium">{sortedData.length}</span> results
+                  </p>
+                </div>
+                <div>
+                  <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px" aria-label="Pagination">
+                    <Button
+                      variant="flat"
+                      size="sm"
+                      isDisabled={currentPage === 1}
+                      onPress={() => handlePageChange(currentPage - 1)}
+                      className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600"
+                    >
+                      <ChevronLeft size={16} />
+                    </Button>
+                    
+                    {getPageNumbers().map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "solid" : "flat"}
+                        color={currentPage === page ? "primary" : "default"}
+                        size="sm"
+                        onPress={() => handlePageChange(page)}
+                        className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600"
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                    
+                    <Button
+                      variant="flat"
+                      size="sm"
+                      isDisabled={currentPage === totalPages}
+                      onPress={() => handlePageChange(currentPage + 1)}
+                      className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600"
+                    >
+                      <ChevronRight size={16} />
+                    </Button>
+                  </nav>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
     </div>
   );
-};
+}
 
 export default DataTable; 
