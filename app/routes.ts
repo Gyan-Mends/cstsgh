@@ -6,6 +6,7 @@ export default [
     route("/who-we-are", "routes/who-we-are/index.tsx"),
     route("/compliance-notices", "routes/compliance-notices/index.tsx"),
     route("/events", "routes/events/index.tsx"),
+    route("/events/:id", "routes/events/$id.tsx"),
     route("/trainings", "routes/trainings/index.tsx"),
     route("/trainings/:typesId", "routes/trainings/$typesId.tsx"),
     route("/trainings/:typesId/:id", "routes/trainings/$typesId.$id.tsx"),

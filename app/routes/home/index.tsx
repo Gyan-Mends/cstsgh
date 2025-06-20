@@ -1,34 +1,40 @@
-import { Button } from "@heroui/react"
-import { ArrowRight, Calendar, BookOpen, Briefcase, FileText, Users, Building, Phone, User, ChevronDown } from "lucide-react"
-import hero1 from "~/components/image/hero1.jpg"
-import hero2 from "~/components/image/hero2.jpg"
-import hero3 from "~/components/image/hero3.jpg"
-import im2 from "~/components/image/photo-1487058792275-0ad4aaf24ca7_qqlo0v.avif"
-import im3 from "~/components/image/lawyer.jpg"
-import boardOld from "~/components/image/board-old-timber-surface-floor_1203-4394.avif"
-import { useState, useEffect } from "react"
-import { NavLink } from "react-router"
-
+import { Button } from "@heroui/react";
+import {
+  ArrowRight,
+  Calendar,
+  BookOpen,
+  Briefcase,
+  FileText,
+  Users,
+  Building,
+  Phone,
+  User,
+  ChevronDown,
+} from "lucide-react";
+import hero1 from "~/components/image/hero1.jpg";
+import hero2 from "~/components/image/hero2.jpg";
+import hero3 from "~/components/image/hero3.jpg";
+import im2 from "~/components/image/photo-1487058792275-0ad4aaf24ca7_qqlo0v.avif";
+import im3 from "~/components/image/lawyer.jpg";
+import boardOld from "~/components/image/board-old-timber-surface-floor_1203-4394.avif";
+import { useState, useEffect } from "react";
+import { NavLink } from "react-router";
 
 export default function Home() {
   // Background slideshow state
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   // Background images array
-  const backgroundImages = [
-    hero1,
-    hero2,
-    hero3,
-  ]
+  const backgroundImages = [hero1, hero2, hero3];
 
   // Auto-slide effect
   useEffect(() => {
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % backgroundImages.length)
-    }, 8000) // Change slide every 8 seconds for smoother experience
+      setCurrentSlide((prev) => (prev + 1) % backgroundImages.length);
+    }, 8000); // Change slide every 8 seconds for smoother experience
 
-    return () => clearInterval(interval)
-  }, [backgroundImages.length])
+    return () => clearInterval(interval);
+  }, [backgroundImages.length]);
 
   return (
     <div>
@@ -41,20 +47,28 @@ export default function Home() {
               {backgroundImages.map((image, index) => (
                 <div
                   key={index}
-                  className={`absolute inset-0 transition-all duration-[2500ms] ease-in-out transform ${index === currentSlide
-                    ? 'opacity-100 scale-105'
-                    : 'opacity-0 scale-100'
-                    }`}
+                  className={`absolute inset-0 transition-all duration-[2500ms] ease-in-out transform ${
+                    index === currentSlide
+                      ? "opacity-100 scale-105"
+                      : "opacity-0 scale-100"
+                  }`}
                   style={{
                     backgroundImage: `url(${image})`,
-                    backgroundSize: 'cover',
-                    backgroundPosition: 'center',
-                    backgroundRepeat: 'no-repeat',
-                    animation: index === currentSlide ? 'smoothZoomPan 8000ms ease-in-out infinite' : 'none',
-                    willChange: 'transform, opacity',
-                    backfaceVisibility: 'hidden',
-                    filter: index === currentSlide ? 'brightness(1.05)' : 'brightness(1)',
-                    transition: 'all 2.5s cubic-bezier(0.4, 0, 0.2, 1), filter 3s ease-in-out'
+                    backgroundSize: "cover",
+                    backgroundPosition: "center",
+                    backgroundRepeat: "no-repeat",
+                    animation:
+                      index === currentSlide
+                        ? "smoothZoomPan 8000ms ease-in-out infinite"
+                        : "none",
+                    willChange: "transform, opacity",
+                    backfaceVisibility: "hidden",
+                    filter:
+                      index === currentSlide
+                        ? "brightness(1.05)"
+                        : "brightness(1)",
+                    transition:
+                      "all 2.5s cubic-bezier(0.4, 0, 0.2, 1), filter 3s ease-in-out",
                   }}
                 />
               ))}
@@ -74,11 +88,11 @@ export default function Home() {
                   <span className="text-white">Professional</span> Training
                 </h1>
                 <p className="fade-in-up delay-400 mt-6 text-lg leading-relaxed text-white">
-                  Strengthening the capacity of companies and entrepreneurs  in core
+                  Strengthening the capacity of companies and entrepreneurs in
+                  core
                 </p>
                 <p className="fade-in-up delay-500 text-lg leading-relaxed text-white">
-                  areas such as corporate
-                  governance, financial management,
+                  areas such as corporate governance, financial management,
                 </p>
                 <p className="fade-in-up delay-600 text-lg leading-relaxed text-white">
                   public and business administration.
@@ -106,17 +120,18 @@ export default function Home() {
                 <button
                   key={index}
                   onClick={() => setCurrentSlide(index)}
-                  className={`relative w-12 h-3 rounded-full transition-all duration-500 ease-out ${index === currentSlide
-                    ? 'bg-white/90 scale-110'
-                    : 'bg-white/30 hover:bg-white/60 hover:scale-105'
-                    }`}
+                  className={`relative w-12 h-3 rounded-full transition-all duration-500 ease-out ${
+                    index === currentSlide
+                      ? "bg-white/90 scale-110"
+                      : "bg-white/30 hover:bg-white/60 hover:scale-105"
+                  }`}
                 >
                   {/* Progress bar for active slide */}
                   {index === currentSlide && (
                     <div
                       className="absolute inset-0 bg-pink-500 rounded-full transition-all duration-500"
                       style={{
-                        animation: 'slideProgress 8000ms linear infinite'
+                        animation: "slideProgress 8000ms linear infinite",
                       }}
                     />
                   )}
@@ -127,7 +142,9 @@ export default function Home() {
             {/* Scroll Indicator */}
             <div className="absolute bottom-16 left-1/2 transform -translate-x-1/2 z-20">
               <div className="flex flex-col items-center animate-bounce">
-                <span className="text-gray-400 text-sm mb-2 font-medium">Scroll Down</span>
+                <span className="text-gray-400 text-sm mb-2 font-medium">
+                  Scroll Down
+                </span>
                 <ChevronDown className="w-6 h-6 text-gray-400" />
               </div>
             </div>
@@ -161,16 +178,20 @@ export default function Home() {
                   </div>
                   <div className="fade-in-up delay-200">
                     <p className="mt-6 text-lg leading-relaxed text-gray-600">
-                      CSTS is an organization set up to strengthen the capacity of companies and entrepreneurs in core areas such
-                      as corporate governance, financial management, public and business administration to ensure that these
-                      entities become competitive in their various industries.
+                      CSTS is an organization set up to strengthen the capacity
+                      of companies and entrepreneurs in core areas such as
+                      corporate governance, financial management, public and
+                      business administration to ensure that these entities
+                      become competitive in their various industries.
                     </p>
                   </div>
                   <div className="fade-in-up delay-400">
                     <p className="mt-6 text-lg leading-relaxed text-gray-600">
-                      Our long-established background in corporate learning enables us to design and deliver bespoke learning
-                      programmes that blend next-generation learning technologies and techniques in a way that drives performance
-                      and inspires a culture of lifelong learning.
+                      Our long-established background in corporate learning
+                      enables us to design and deliver bespoke learning
+                      programmes that blend next-generation learning
+                      technologies and techniques in a way that drives
+                      performance and inspires a culture of lifelong learning.
                     </p>
                   </div>
                   <div className="fade-in-up delay-600">
@@ -193,9 +214,12 @@ export default function Home() {
           <section className="py-16 md:py-24 bg-gray-50">
             <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
               <div className="text-center fade-in-up">
-                <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">Our Services</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                  Our Services
+                </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-                  We provide a wide range of corporate services to help your business thrive in today's competitive environment.
+                  We provide a wide range of corporate services to help your
+                  business thrive in today's competitive environment.
                 </p>
               </div>
 
@@ -234,26 +258,22 @@ export default function Home() {
                   {
                     icon: "📊",
                     title: "Consultancy Services",
-                    description: "Ensuring your business meets all regulatory requirements and industry standards.",
+                    description:
+                      "Ensuring your business meets all regulatory requirements and industry standards.",
                   },
                 ].map((service, index) => (
-                  <div className={`fade-in-up delay-${index * 100} service-card`} key={index}>
+                  <div
+                    className={`fade-in-up delay-${index * 100} service-card`}
+                    key={index}
+                  >
                     <div className="rounded-lg border border-gray-200 bg-white p-6 shadow-sm transition-transform duration-300 hover:shadow-lg hover:transform-3d lg:h-[35vh]">
                       <div className="mb-4 text-4xl">{service.icon}</div>
-                      <h3 className="mb-2 text-xl font-semibold text-gray-900">{service.title}</h3>
+                      <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                        {service.title}
+                      </h3>
                       <p className="text-gray-600">{service.description}</p>
-                      <div className="mt-4">
-                        <NavLink
-                          to="/corporate-services"
-                          className="inline-flex items-center text-sm font-medium text-pink-500 transition-colors hover:text-pink-600"
-                        >
-                          Learn more
-                          <ArrowRight className="ml-2 h-4 w-4" />
-                        </NavLink>
-                      </div>
                     </div>
                   </div>
-
                 ))}
               </div>
             </div>
@@ -272,9 +292,12 @@ export default function Home() {
           <section className="py-16 md:py-24 bg-gray-50">
             <div className="mx-auto max-w-7xl  sm:px-6 lg:px-8">
               <div className="text-center fade-in-up">
-                <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">Upcoming Event</h2>
+                <h2 className="text-3xl font-bold tracking-tight text-gray-900 md:text-4xl">
+                  Upcoming Event
+                </h2>
                 <p className="mx-auto mt-4 max-w-2xl text-lg text-gray-600">
-                  Join us for our upcoming events and workshops to enhance your knowledge and skills.
+                  Join us for our upcoming events and workshops to enhance your
+                  knowledge and skills.
                 </p>
               </div>
 
@@ -305,16 +328,26 @@ export default function Home() {
                       "A week-long training series focused on equipping entrepreneurs with essential skills in various areas including product development, marketing, and financial management.",
                   },
                 ].map((program, index) => (
-                  <div className={`slide-in-right delay-${index * 100} event-card`} key={index}>
+                  <div
+                    className={`slide-in-right delay-${index * 100} event-card`}
+                    key={index}
+                  >
                     <div className="rounded-lg border hover:transform-3d border-gray-200 bg-white p-6 shadow-sm transition-all hover:shadow-md">
                       <div className="flex justify-between mb-4">
-                        <div className="bg-pink-200 p-1 rounded bounce-in delay-200">{program.icon}</div>
-                        <div className="py-1 px-4 bg-gray-50 rounded-full fade-in delay-300">{program.Status}</div>
+                        <div className="bg-pink-200 p-1 rounded bounce-in delay-200">
+                          {program.icon}
+                        </div>
+                        <div className="py-1 px-4 bg-gray-50 rounded-full fade-in delay-300">
+                          {program.Status}
+                        </div>
                       </div>
-                      <h3 className="mb-2 text-xl font-semibold text-gray-900">{program.title}</h3>
-                      <p className="mb-4 text-sm font-medium text-gray-500">{program.date}</p>
+                      <h3 className="mb-2 text-xl font-semibold text-gray-900">
+                        {program.title}
+                      </h3>
+                      <p className="mb-4 text-sm font-medium text-gray-500">
+                        {program.date}
+                      </p>
                       <p className="text-gray-600">{program.description}</p>
-
                     </div>
                   </div>
                 ))}
@@ -385,10 +418,10 @@ export default function Home() {
             className="relative py-16 md:py-24 overflow-hidden"
             style={{
               backgroundImage: `url(${boardOld})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              backgroundRepeat: 'no-repeat',
-              backgroundAttachment: 'fixed'
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+              backgroundAttachment: "fixed",
             }}
           >
             {/* Overlay */}
@@ -404,7 +437,9 @@ export default function Home() {
                     Ready to Elevate Your Business?
                   </h2>
                   <p className="mt-4 text-lg text-white/90">
-                    Whether you need corporate secretarial services, business registration, or professional training, our team of experts is ready to support your business needs.
+                    Whether you need corporate secretarial services, business
+                    registration, or professional training, our team of experts
+                    is ready to support your business needs.
                   </p>
                   <div className="mt-8 flex flex-wrap gap-4">
                     <NavLink
@@ -429,10 +464,18 @@ export default function Home() {
                     <div className="absolute inset-0 flex items-center justify-center bg-white/95 backdrop-blur-sm shadow-xl border border-white/20 p-8 rounded-lg">
                       <div className="text-center">
                         <Phone className="mx-auto h-12 w-12 text-pink-500 bounce-in delay-100" />
-                        <p className="mt-4 text-xl font-bold text-gray-900 fade-in-up delay-200">Contact Us</p>
-                        <p className="mt-2 text-gray-700 fade-in-up delay-300">0201108331 / 0270308880 / 0506326541</p>
-                        <p className="text-gray-700 fade-in-up delay-400">info@cstsghana.com</p>
-                        <p className="mt-4 text-sm text-gray-600 fade-in-up delay-500">Monday - Friday: 9:00 AM - 5:00 PM</p>
+                        <p className="mt-4 text-xl font-bold text-gray-900 fade-in-up delay-200">
+                          Contact Us
+                        </p>
+                        <p className="mt-2 text-gray-700 fade-in-up delay-300">
+                          0201108331 / 0270308880 / 0506326541
+                        </p>
+                        <p className="text-gray-700 fade-in-up delay-400">
+                          info@cstsghana.com
+                        </p>
+                        <p className="mt-4 text-sm text-gray-600 fade-in-up delay-500">
+                          Monday - Friday: 9:00 AM - 5:00 PM
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -443,6 +486,5 @@ export default function Home() {
         </main>
       </div>
     </div>
-  )
+  );
 }
-

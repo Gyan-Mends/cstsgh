@@ -104,7 +104,7 @@ export default function EventsPage() {
                                         }}
                                         className="fade-in-up delay-200 event-card border-b border-gray-300 bg-white rounded-lg pb-10 shadow-md last:border-0 hover:transform-3d"
                                     >
-                                        <Link to="/404">
+                                        <Link to={`/events/${event._id}`}>
                                             <div className="group">
                                                 <div className="mb-4 h-[33vh] w-full rounded-lg bg-gray-200 overflow-hidden">
                                                     <img 
