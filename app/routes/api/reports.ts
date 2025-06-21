@@ -1,6 +1,14 @@
 import { type ActionFunction, type LoaderFunction } from "react-router";
 import Report from "~/model/reports";
 
+// Helper function to add CORS headers
+const addCorsHeaders = (response: Response): Response => {
+  response.headers.set("Access-Control-Allow-Origin", "*");
+  response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  return response;
+};
+
 // Helper function to convert file to base64
 const convertToBase64 = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -12,6 +20,12 @@ const convertToBase64 = (file: File): Promise<string> => {
 };
 
 export const loader: LoaderFunction = async ({ request }) => {
+  // Handle OPTIONS request for CORS preflight
+  if (request.method === "OPTIONS") {
+    const response = new Response(null, { status: 200 });
+    return addCorsHeaders(response);
+  }
+
   try {
     const url = new URL(request.url);
     const id = url.searchParams.get("id");
@@ -24,9 +38,11 @@ export const loader: LoaderFunction = async ({ request }) => {
     if (id) {
       const report = await Report.findById(id);
       if (!report) {
-        return Response.json({ success: false, message: "Report not found" }, { status: 404 });
+        const response = Response.json({ success: false, message: "Report not found" }, { status: 404 });
+        return addCorsHeaders(response);
       }
-      return Response.json({ success: true, data: report });
+      const response = Response.json({ success: true, data: report });
+      return addCorsHeaders(response);
     }
 
     // Build query filter
@@ -54,7 +70,7 @@ export const loader: LoaderFunction = async ({ request }) => {
       .skip(skip)
       .limit(limit);
 
-    return Response.json({
+    const response = Response.json({
       success: true,
       data: reports,
       pagination: {
@@ -64,13 +80,21 @@ export const loader: LoaderFunction = async ({ request }) => {
         totalPages
       }
     });
+    return addCorsHeaders(response);
   } catch (error: any) {
     console.error("Error fetching reports:", error);
-    return Response.json({ success: false, message: "Failed to fetch reports" }, { status: 500 });
+    const response = Response.json({ success: false, message: "Failed to fetch reports" }, { status: 500 });
+    return addCorsHeaders(response);
   }
 };
 
 export const action: ActionFunction = async ({ request }) => {
+  // Handle OPTIONS request for CORS preflight
+  if (request.method === "OPTIONS") {
+    const response = new Response(null, { status: 200 });
+    return addCorsHeaders(response);
+  }
+
   try {
     const method = request.method;
 
@@ -80,10 +104,11 @@ export const action: ActionFunction = async ({ request }) => {
         
         // Validate required fields
         if (!body.title || !body.description || !body.category || !body.eventDate) {
-          return Response.json({ 
+          const response = Response.json({ 
             success: false, 
             message: "Title, description, category, and event date are required" 
           }, { status: 400 });
+          return addCorsHeaders(response);
         }
 
         const reportData: any = {
@@ -110,7 +135,8 @@ export const action: ActionFunction = async ({ request }) => {
         const newReport = new Report(reportData);
         const savedReport = await newReport.save();
         
-        return Response.json({ success: true, message: "Report created successfully", data: savedReport });
+        const response = Response.json({ success: true, message: "Report created successfully", data: savedReport });
+        return addCorsHeaders(response);
       }
 
       case "PUT": {
@@ -119,10 +145,11 @@ export const action: ActionFunction = async ({ request }) => {
         
         // Validate required fields
         if (!updateFields.title || !updateFields.description || !updateFields.category || !updateFields.eventDate) {
-          return Response.json({ 
+          const response = Response.json({ 
             success: false, 
             message: "Title, description, category, and event date are required" 
           }, { status: 400 });
+          return addCorsHeaders(response);
         }
 
         const updateData: any = {
@@ -149,10 +176,12 @@ export const action: ActionFunction = async ({ request }) => {
         const updatedReport = await Report.findByIdAndUpdate(id, updateData, { new: true });
         
         if (!updatedReport) {
-          return Response.json({ success: false, message: "Report not found" }, { status: 404 });
+          const response = Response.json({ success: false, message: "Report not found" }, { status: 404 });
+          return addCorsHeaders(response);
         }
 
-        return Response.json({ success: true, message: "Report updated successfully", data: updatedReport });
+        const response = Response.json({ success: true, message: "Report updated successfully", data: updatedReport });
+        return addCorsHeaders(response);
       }
 
       case "DELETE": {
@@ -161,17 +190,21 @@ export const action: ActionFunction = async ({ request }) => {
         const deletedReport = await Report.findByIdAndDelete(id);
         
         if (!deletedReport) {
-          return Response.json({ success: false, message: "Report not found" }, { status: 404 });
+          const response = Response.json({ success: false, message: "Report not found" }, { status: 404 });
+          return addCorsHeaders(response);
         }
 
-        return Response.json({ success: true, message: "Report deleted successfully" });
+        const response = Response.json({ success: true, message: "Report deleted successfully" });
+        return addCorsHeaders(response);
       }
 
       default:
-        return Response.json({ success: false, message: "Method not allowed" }, { status: 405 });
+        const response = Response.json({ success: false, message: "Method not allowed" }, { status: 405 });
+        return addCorsHeaders(response);
     }
   } catch (error: any) {
     console.error("Error in reports API:", error);
-    return Response.json({ success: false, message: error.message || "Internal server error" }, { status: 500 });
+    const response = Response.json({ success: false, message: error.message || "Internal server error" }, { status: 500 });
+    return addCorsHeaders(response);
   }
 }; 
