@@ -1,5 +1,7 @@
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Search, Eye, User, Mail, Phone, Briefcase, Lock, ImageIcon } from "lucide-react";
+import { useNavigate } from "react-router";
+import { getUserData } from "~/utils/auth";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import DataTable, { type Column } from "~/components/DataTable";
@@ -16,8 +18,19 @@ export const meta = () => {
 };
 
 const Users = () => {
+  const navigate = useNavigate();
   const [users, setUsers] = useState<UsersInterface[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Check if user has admin role
+  useEffect(() => {
+    const userData = getUserData();
+    if (!userData || userData.role !== 'admin') {
+      errorToast("Access denied. You don't have permission to view this page.");
+      navigate('/dashboard');
+      return;
+    }
+  }, [navigate]);
   
   // Drawer states
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);

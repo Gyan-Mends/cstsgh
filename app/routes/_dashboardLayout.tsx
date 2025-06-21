@@ -67,20 +67,25 @@ const DashboardLayout = () => {
     }
   }, []);
 
-  const navigationItems = [
-    { name: "Dashboard", href: "/dashboard", icon: Home },
-    { name: "Users", href: "/dashboard/users", icon: Users },
-    { name: "Blogs", href: "/dashboard/blogs", icon: BookOpen },
-    { name: "Training", href: "/dashboard/training", icon: GraduationCap },
-    { name: "Training Types", href: "/dashboard/training-types", icon: Tag },
-    { name: "Events", href: "/dashboard/events", icon: Calendar },
-    { name: "Reports", href: "/dashboard/reports", icon: FileText },
-    { name: "Gallery", href: "/dashboard/gallery", icon: Image },
-    { name: "Notices", href: "/dashboard/notices", icon: FileText },
-    { name: "Categories", href: "/dashboard/categories", icon: Tag },
-    { name: "Directors Bank", href: "/dashboard/directors-bank", icon: Building2 },
-    { name: "Contact", href: "/dashboard/contact", icon: Phone },
+  const allNavigationItems = [
+    { name: "Dashboard", href: "/dashboard", icon: Home, roles: ['admin', 'staff'] },
+    { name: "Users", href: "/dashboard/users", icon: Users, roles: ['admin'] },
+    { name: "Blogs", href: "/dashboard/blogs", icon: BookOpen, roles: ['admin', 'staff'] },
+    { name: "Training", href: "/dashboard/training", icon: GraduationCap, roles: ['admin', 'staff'] },
+    { name: "Training Types", href: "/dashboard/training-types", icon: Tag, roles: ['admin', 'staff'] },
+    { name: "Events", href: "/dashboard/events", icon: Calendar, roles: ['admin', 'staff'] },
+    { name: "Reports", href: "/dashboard/reports", icon: FileText, roles: ['admin', 'staff'] },
+    { name: "Gallery", href: "/dashboard/gallery", icon: Image, roles: ['admin', 'staff'] },
+    { name: "Notices", href: "/dashboard/notices", icon: FileText, roles: ['admin', 'staff'] },
+    { name: "Categories", href: "/dashboard/categories", icon: Tag, roles: ['admin', 'staff'] },
+    { name: "Directors Bank", href: "/dashboard/directors-bank", icon: Building2, roles: ['admin', 'staff'] },
+    { name: "Contact", href: "/dashboard/contact", icon: Phone, roles: ['admin', 'staff'] },
   ];
+
+  // Filter navigation items based on user role
+  const navigationItems = allNavigationItems.filter(item => 
+    user && item.roles.includes(user.role)
+  );
 
   const toggleTheme = () => {
     const newDarkMode = !isDarkMode;
