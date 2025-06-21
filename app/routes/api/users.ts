@@ -46,7 +46,7 @@ export const action: ActionFunction = async ({ request }) => {
           position: body.position,
           role: body.role,
           password: hashedPassword,
-          base64Image: body.image || "",
+          image: body.image || "",
         };
 
         const newUser = new User(userData);
@@ -73,7 +73,7 @@ export const action: ActionFunction = async ({ request }) => {
 
         // Only update image if provided
         if (body.image) {
-          updateData.base64Image = body.image;
+          updateData.image = body.image;
         }
 
         // Hash password if provided

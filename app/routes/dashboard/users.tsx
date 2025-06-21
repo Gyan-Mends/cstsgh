@@ -195,7 +195,7 @@ const Users = () => {
       position: user.position,
       role: user.role || "admin",
       password: "", // Keep empty for edit
-      image: user.base64Image || "",
+      image: user.image || "",
     });
     setIsEditDrawerOpen(true);
   };
@@ -214,9 +214,9 @@ const Users = () => {
       render: (value, record) => (
         <div className="flex items-center">
           <div className="h-10 w-10 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
-            {record.base64Image ? (
+            {record.image ? (
               <img 
-                src={record.base64Image} 
+                src={record.image} 
                 alt={record.fullName}
                 className="h-10 w-10 rounded-full object-cover"
                 onError={(e) => {
@@ -226,7 +226,7 @@ const Users = () => {
                 }}
               />
             ) : null}
-            <span className={`text-white font-medium text-sm ${record.base64Image ? 'hidden' : ''}`}>
+            <span className={`text-white font-medium text-sm ${record.image ? 'hidden' : ''}`}>
               {record.fullName.charAt(0).toUpperCase()}
             </span>
           </div>
@@ -569,11 +569,11 @@ const Users = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Profile Image
             </label>
-            {selectedUser?.base64Image && (
+            {selectedUser?.image && (
               <div className="mb-3">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Current image:</p>
                 <img 
-                  src={selectedUser.base64Image} 
+                  src={selectedUser.image} 
                   alt="Current profile" 
                   className="h-20 w-20 rounded-full object-cover border-2 border-gray-200 dark:border-gray-600"
                   onError={(e) => {
@@ -596,7 +596,7 @@ const Users = () => {
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               Choose a new image file or leave empty to keep current image
             </p>
-            {formData.image && formData.image !== selectedUser?.base64Image && (
+            {formData.image && formData.image !== selectedUser?.image && (
               <div className="mt-3">
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">New image preview:</p>
                 <img 
@@ -642,9 +642,9 @@ const Users = () => {
           <div className="space-y-6">
             <div className="flex items-center space-x-4">
               <div className="h-16 w-16 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden">
-                {selectedUser.base64Image ? (
+                {selectedUser.image ? (
                   <img 
-                    src={selectedUser.base64Image} 
+                    src={selectedUser.image} 
                     alt={selectedUser.fullName}
                     className="h-16 w-16 rounded-full object-cover"
                     onError={(e) => {
@@ -654,7 +654,7 @@ const Users = () => {
                     }}
                   />
                 ) : null}
-                <span className={`text-white font-medium text-xl ${selectedUser.base64Image ? 'hidden' : ''}`}>
+                <span className={`text-white font-medium text-xl ${selectedUser.image ? 'hidden' : ''}`}>
                   {selectedUser.fullName.charAt(0).toUpperCase()}
                 </span>
               </div>

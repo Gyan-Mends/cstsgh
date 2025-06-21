@@ -27,8 +27,7 @@ export interface UsersInterface {
     position: string;
     role?: 'admin' | 'staff';
     password: string;
-    base64Image?: string;
-    image?: File;
+    image?: string;
 }
 
 export interface BlogInterface {
