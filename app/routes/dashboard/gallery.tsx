@@ -2,8 +2,11 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Search, Eye, Image as ImageIcon, FileText } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
+import DataTable, { type Column } from "~/components/DataTable";
 import type { GalleryInterface } from "~/components/interface";
+import { Button, useDisclosure } from "@heroui/react";
 import { successToast, errorToast } from "~/components/toast";
+import ConfirmModal from "~/components/confirmModal";
 
 export const meta = () => {
   return [
@@ -15,13 +18,16 @@ export const meta = () => {
 const Gallery = () => {
   const [galleryItems, setGalleryItems] = useState<GalleryInterface[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Drawer states
   const [isCreateDrawerOpen, setIsCreateDrawerOpen] = useState(false);
   const [isEditDrawerOpen, setIsEditDrawerOpen] = useState(false);
   const [isViewDrawerOpen, setIsViewDrawerOpen] = useState(false);
   const [selectedItem, setSelectedItem] = useState<GalleryInterface | null>(null);
+  
+  // Confirmation modal
+  const { isOpen: isDeleteModalOpen, onOpen: onDeleteModalOpen, onOpenChange: onDeleteModalOpenChange } = useDisclosure();
+  const [itemToDelete, setItemToDelete] = useState<string | null>(null);
   
   // Form states
   const [formData, setFormData] = useState({
@@ -118,9 +124,15 @@ const Gallery = () => {
     }
   };
 
+  // Open delete confirmation modal
+  const openDeleteModal = (id: string) => {
+    setItemToDelete(id);
+    onDeleteModalOpen();
+  };
+
   // Handle delete
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this gallery item?")) return;
+  const handleDelete = async () => {
+    if (!itemToDelete) return;
     
     try {
       const response = await fetch("/api/gallery", {
@@ -128,7 +140,7 @@ const Gallery = () => {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id }),
+        body: JSON.stringify({ id: itemToDelete }),
       });
 
       const data = await response.json();
@@ -136,6 +148,8 @@ const Gallery = () => {
       if (data.success) {
         await fetchGalleryItems();
         successToast("Gallery item deleted successfully!");
+        onDeleteModalOpenChange();
+        setItemToDelete(null);
       } else {
         errorToast(data.message);
       }
@@ -171,11 +185,96 @@ const Gallery = () => {
     setIsViewDrawerOpen(true);
   };
 
-  // Filter items based on search
-  const filteredItems = galleryItems.filter(item =>
-    item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    item.type.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Define table columns
+  const columns: Column<GalleryInterface>[] = [
+    {
+      key: 'title',
+      title: 'Gallery Item',
+      render: (value, record) => (
+        <div className="flex items-center">
+          <div className="h-10 w-10 rounded-lg bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center overflow-hidden">
+            {record.image ? (
+              <img 
+                src={record.image} 
+                alt={record.title}
+                className="h-10 w-10 rounded-lg object-cover"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  target.nextElementSibling?.classList.remove('hidden');
+                }}
+              />
+            ) : null}
+            <span className={`text-white font-medium text-sm ${record.image ? 'hidden' : ''}`}>
+              <ImageIcon size={16} />
+            </span>
+          </div>
+          <div className="ml-4">
+            <div className="text-sm font-medium text-gray-900 dark:text-white">
+              {record.title}
+            </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      key: 'type',
+      title: 'Type',
+      render: (value) => (
+        <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+          value === "photo" 
+            ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
+            : value === "video"
+            ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
+            : value === "certificate"
+            ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
+            : value === "document"
+            ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/20 dark:text-yellow-400"
+            : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
+        }`}>
+          {value}
+        </span>
+      ),
+    },
+    {
+      key: '_id',
+      title: 'Actions',
+      sortable: false,
+      searchable: false,
+      align: 'right' as const,
+      render: (value, record) => (
+        <div className="flex items-center justify-end space-x-2">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openViewDrawer(record);
+            }}
+            className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
+          >
+            <Eye size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openEditDrawer(record);
+            }}
+            className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300"
+          >
+            <Edit size={16} />
+          </button>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              openDeleteModal(record._id);
+            }}
+            className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
+          >
+            <Trash2 size={16} />
+          </button>
+        </div>
+      ),
+    },
+  ];
 
   const GalleryForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit ? "edit" : "create")} className="space-y-6">
@@ -252,24 +351,26 @@ const Gallery = () => {
         )}
       </div>
 
-      <div className="flex justify-end space-x-3">
-        <button
+      <div className="flex justify-end space-x-3 pt-4">
+        <Button
           type="button"
-          onClick={() => {
+          variant="flat"
+          color="default"
+          onPress={() => {
             resetForm();
             setIsCreateDrawerOpen(false);
             setIsEditDrawerOpen(false);
           }}
-          className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-600 hover:bg-gray-200 dark:hover:bg-gray-500 rounded-lg transition-colors"
         >
           Cancel
-        </button>
-        <button
+        </Button>
+        <Button
           type="submit"
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+          color="primary"
+          className="bg-blue-600 hover:bg-blue-700"
         >
           {isEdit ? "Update Item" : "Create Item"}
-        </button>
+        </Button>
       </div>
     </form>
   );
@@ -299,85 +400,15 @@ const Gallery = () => {
         </button>
       </div>
 
-      {/* Search */}
-      <div className="flex items-center space-x-4">
-        <div className="flex-1">
-          <CustomInput
-            type="text"
-            placeholder="Search gallery items..."
-            value={searchTerm}
-            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchTerm(e.target.value)}
-            endContent={<Search className="text-gray-400 w-5 h-5" />}
-          />
-        </div>
-      </div>
-
-      {/* Gallery Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-        {filteredItems.map((item) => (
-          <div key={item._id} className="bg-white dark:bg-gray-800 rounded-lg shadow hover:shadow-md transition-shadow overflow-hidden">
-            <div className="aspect-square bg-gray-200 dark:bg-gray-700 relative">
-              {item.image && (
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none';
-                  }}
-                />
-              )}
-              <div className="absolute top-2 right-2">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
-                  item.type === "photo" 
-                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/20 dark:text-blue-400"
-                    : item.type === "video"
-                    ? "bg-purple-100 text-purple-800 dark:bg-purple-900/20 dark:text-purple-400"
-                    : item.type === "certificate"
-                    ? "bg-green-100 text-green-800 dark:bg-green-900/20 dark:text-green-400"
-                    : "bg-gray-100 text-gray-800 dark:bg-gray-900/20 dark:text-gray-400"
-                }`}>
-                  {item.type}
-                </span>
-              </div>
-            </div>
-            <div className="p-4">
-              <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-3 line-clamp-2">
-                {item.title}
-              </h3>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <button
-                    onClick={() => openViewDrawer(item)}
-                    className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                  >
-                    <Eye size={16} />
-                  </button>
-                  <button
-                    onClick={() => openEditDrawer(item)}
-                    className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300"
-                  >
-                    <Edit size={16} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(item._id)}
-                    className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {filteredItems.length === 0 && (
-        <div className="text-center py-12">
-          <ImageIcon size={48} className="mx-auto text-gray-400 mb-4" />
-          <p className="text-gray-500 dark:text-gray-400">No gallery items found</p>
-        </div>
-      )}
+      {/* DataTable */}
+      <DataTable
+        data={galleryItems}
+        columns={columns}
+        loading={loading}
+        searchPlaceholder="Search gallery items by title or type..."
+        emptyText="No gallery items found"
+        pageSize={10}
+      />
 
       {/* Create Drawer */}
       <Drawer
@@ -443,6 +474,30 @@ const Gallery = () => {
           </div>
         )}
       </Drawer>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isDeleteModalOpen}
+        onOpenChange={onDeleteModalOpenChange}
+        header="Delete Gallery Item"
+        content="Are you sure you want to delete this gallery item? This action cannot be undone."
+      >
+        <div className="flex gap-3">
+          <Button
+            variant="flat"
+            color="default"
+            onPress={() => onDeleteModalOpenChange()}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="danger"
+            onPress={handleDelete}
+          >
+            Delete
+          </Button>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };
