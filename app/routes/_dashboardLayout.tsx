@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import { isAuthenticated, getUserData, logout, type UserData } from "~/utils/auth";
 import { successToast } from "~/components/toast";
+import { Button, useDisclosure } from "@heroui/react";
+import ConfirmModal from "~/components/confirmModal";
 
 const DashboardLayout = () => {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -40,6 +42,9 @@ const DashboardLayout = () => {
   const [user, setUser] = useState<UserData | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+  
+  // Logout confirmation modal
+  const { isOpen: isLogoutModalOpen, onOpen: onLogoutModalOpen, onOpenChange: onLogoutModalOpenChange } = useDisclosure();
 
   // Check authentication on mount
   useEffect(() => {
@@ -89,10 +94,15 @@ const DashboardLayout = () => {
     }
   };
 
+  const openLogoutModal = () => {
+    onLogoutModalOpen();
+  };
+
   const handleLogout = () => {
     logout();
     successToast("Logged out successfully");
     navigate("/login");
+    onLogoutModalOpenChange();
   };
 
   // Get user initials for avatar
@@ -189,7 +199,7 @@ const DashboardLayout = () => {
           </Link>
           
           <button
-            onClick={handleLogout}
+            onClick={openLogoutModal}
             className={`flex items-center w-full px-3 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20 transition-colors ${
               isSidebarCollapsed ? 'justify-center' : ''
             }`}
@@ -261,6 +271,30 @@ const DashboardLayout = () => {
           onClick={() => setIsSidebarCollapsed(true)}
         />
       )}
+
+      {/* Logout Confirmation Modal */}
+      <ConfirmModal
+        isOpen={isLogoutModalOpen}
+        onOpenChange={onLogoutModalOpenChange}
+        header="Confirm Logout"
+        content="Are you sure you want to logout? You will need to login again to access the dashboard."
+      >
+        <div className="flex gap-3">
+          <Button
+            variant="flat"
+            color="default"
+            onPress={() => onLogoutModalOpenChange()}
+          >
+            Cancel
+          </Button>
+          <Button
+            color="danger"
+            onPress={handleLogout}
+          >
+            Logout
+          </Button>
+        </div>
+      </ConfirmModal>
     </div>
   );
 };
