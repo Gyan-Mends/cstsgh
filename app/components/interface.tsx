@@ -114,3 +114,32 @@ export interface DirectorsBankInterface {
     phone?: string;
 }
 
+// Report interfaces
+export type ReportCategory = 
+  | 'Trade Forums'
+  | 'Legal Conferences'
+  | 'Technology Conferences'
+  | 'Government Meetings'
+  | 'Business Roundtables'
+  | 'Academic Conferences';
+
+export interface ReportInterface {
+    _id: string;
+    title: string;
+    description: string;
+    category: ReportCategory;
+    eventDate: string;
+    createdAt?: string;
+    updatedAt?: string;
+    filename?: string;
+    fileUrl?: string;
+    fileSize?: number;
+    filePath?: string;
+    isPublished: boolean;
+    tags?: string[];
+    eventLocation?: string;
+    eventOrganizer?: string;
+    summary?: string;
+    keyOutcomes?: string[];
+}
+

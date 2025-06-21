@@ -74,6 +74,7 @@ const DashboardLayout = () => {
     { name: "Training", href: "/dashboard/training", icon: GraduationCap },
     { name: "Training Types", href: "/dashboard/training-types", icon: Tag },
     { name: "Events", href: "/dashboard/events", icon: Calendar },
+    { name: "Reports", href: "/dashboard/reports", icon: FileText },
     { name: "Gallery", href: "/dashboard/gallery", icon: Image },
     { name: "Notices", href: "/dashboard/notices", icon: FileText },
     { name: "Categories", href: "/dashboard/categories", icon: Tag },
