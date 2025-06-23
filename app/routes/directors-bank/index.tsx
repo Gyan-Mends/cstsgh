@@ -14,7 +14,7 @@ interface Director {
     _id?: string;
     name: string;
     position: string;
-    expertise: string[];
+    areasOfExpertise: string[];
     experience: string;
     availability: string;
     image?: string;
@@ -57,7 +57,7 @@ export default function DirectorsBankPage() {
     }, []);
 
     // Get all unique expertise areas for filtering
-    const allExpertiseAreas = directors ? Array.from(new Set(directors.flatMap((director) => director.expertise || []) || [])).sort() : []
+    const allExpertiseAreas = directors ? Array.from(new Set(directors.flatMap((director) => director.areasOfExpertise || []) || [])).sort() : []
 
     // Handle search and filtering
     const handleSearch = () => {
@@ -71,14 +71,14 @@ export default function DirectorsBankPage() {
                 (director) =>
                     director?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
                     director?.position?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                    director?.expertise?.some((skill) => skill?.toLowerCase().includes(searchQuery.toLowerCase())),
+                    director?.areasOfExpertise?.some((skill: string) => skill?.toLowerCase().includes(searchQuery.toLowerCase())),
             )
         }
         
         // Filter by expertise if any are selected
         if (expertiseFilter.length > 0) {
             results = results.filter((director) => 
-                director?.expertise?.some((skill) => expertiseFilter.includes(skill))
+                director?.areasOfExpertise?.some((skill: string) => expertiseFilter.includes(skill))
             )
         }
 
@@ -269,8 +269,8 @@ export default function DirectorsBankPage() {
                                                     alt={director.name}
                                                     className="h-full w-full object-cover"
                                                     onError={(e) => {
-                                                        e.currentTarget.style.display = 'none';
-                                                        e.currentTarget.nextElementSibling!.style.display = 'flex';
+                                                        (e.currentTarget as HTMLImageElement).style.display = 'none';
+                                                        ((e.currentTarget.nextElementSibling) as HTMLElement).style.display = 'flex';
                                                     }}
                                                 />
                                             ) : null}
@@ -293,8 +293,8 @@ export default function DirectorsBankPage() {
                                             <div className="mt-4">
                                                 <h4 className="text-sm font-medium text-gray-700">Areas of Expertise:</h4>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    {director?.expertise?.length ? (
-                                                        director.expertise.map((skill, i) => (
+                                                    {director?.areasOfExpertise?.length ? (
+                                                        director.areasOfExpertise.map((skill: string, i: number) => (
                                                             <span
                                                                 key={i}
                                                                 className="rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-800"
