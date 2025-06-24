@@ -582,7 +582,12 @@ const Blogs = () => {
               {record.name}
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400 truncate max-w-xs">
-              {record.description.length > 50 ? record.description.substring(0, 50) + '...' : record.description}
+              <div 
+                className="prose prose-sm line-clamp-2"
+                dangerouslySetInnerHTML={{ 
+                  __html: record.description.replace(/<[^>]*>/g, '').substring(0, 100) + '...'
+                }}
+              />
             </div>
           </div>
         </div>
@@ -1025,7 +1030,17 @@ const Blogs = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                 <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <div 
-                    className="prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-white"
+                    className="prose prose-sm max-w-none dark:prose-invert
+                      prose-headings:font-bold prose-h1:text-2xl prose-h2:text-xl prose-h3:text-lg
+                      prose-p:text-gray-700 dark:prose-p:text-gray-300
+                      prose-a:text-blue-600 hover:prose-a:text-blue-700
+                      prose-strong:text-gray-900 dark:prose-strong:text-white
+                      prose-blockquote:border-blue-500
+                      prose-img:rounded-lg prose-img:shadow-md
+                      prose-video:rounded-lg prose-video:shadow-md
+                      prose-pre:bg-gray-800 prose-pre:text-gray-100
+                      prose-code:text-blue-600 dark:prose-code:text-blue-400
+                      prose-ul:list-disc prose-ol:list-decimal"
                     dangerouslySetInnerHTML={{ __html: selectedBlog.description }}
                   />
                 </div>
