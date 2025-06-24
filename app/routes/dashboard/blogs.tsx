@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Eye, BookOpen, FileText, Image } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Eye, BookOpen, FileText, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Quote, Code, X, Youtube as YoutubeIcon } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import DataTable, { type Column } from "~/components/DataTable";
@@ -7,6 +7,256 @@ import type { BlogInterface, CategoryInterface, UsersInterface } from "~/compone
 import { Button, useDisclosure, Select, SelectItem } from "@heroui/react";
 import { successToast, errorToast } from "~/components/toast";
 import ConfirmModal from "~/components/confirmModal";
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import Image from '@tiptap/extension-image';
+import YoutubeExtension from '@tiptap/extension-youtube';
+
+// Custom Tiptap Editor Component
+const TiptapEditor = ({ value, onChange, placeholder }: { 
+  value: string; 
+  onChange: (content: string) => void; 
+  placeholder?: string;
+}) => {
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: {
+          levels: [1, 2, 3],
+        },
+      }),
+      TextAlign.configure({
+        types: ['heading', 'paragraph'],
+        alignments: ['left', 'center', 'right'],
+      }),
+      Image.configure({
+        HTMLAttributes: {
+          class: 'max-w-full rounded-lg',
+        },
+      }),
+      YoutubeExtension.configure({
+        HTMLAttributes: {
+          class: 'w-full aspect-video rounded-lg',
+        },
+      }),
+    ],
+    content: value,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm dark:prose-invert max-w-none focus:outline-none min-h-[200px] px-4 py-2',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      onChange(editor.getHTML());
+    },
+  });
+
+  // Toolbar button style
+  const toolbarButtonClass = (isActive: boolean) => `
+    p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 
+    ${isActive ? 'bg-gray-200 dark:bg-gray-600' : ''}
+    text-gray-600 dark:text-gray-300
+  `;
+
+  // Divider component
+  const Divider = () => (
+    <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
+  );
+
+  // Handle image insertion
+  const addImage = () => {
+    const url = window.prompt('Enter the URL of the image:');
+    if (url) {
+      editor?.chain().focus().setImage({ src: url }).run();
+    }
+  };
+
+  // Handle YouTube video insertion
+  const addYoutubeVideo = () => {
+    const url = window.prompt('Enter the URL of the YouTube video:');
+    if (url) {
+      editor?.chain().focus().setYoutubeVideo({ src: url }).run();
+    }
+  };
+
+  return (
+    <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+      {/* Toolbar */}
+      <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
+        <div className="flex items-center flex-wrap gap-1">
+          {/* Text Style */}
+          <button
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+            className={toolbarButtonClass(editor?.isActive('bold') || false)}
+            type="button"
+            title="Bold"
+          >
+            <strong>B</strong>
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+            className={toolbarButtonClass(editor?.isActive('italic') || false)}
+            type="button"
+            title="Italic"
+          >
+            <em>I</em>
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+            className={toolbarButtonClass(editor?.isActive('strike') || false)}
+            type="button"
+            title="Strikethrough"
+          >
+            <span className="line-through">S</span>
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleCode().run()}
+            className={toolbarButtonClass(editor?.isActive('code') || false)}
+            type="button"
+            title="Inline Code"
+          >
+            <Code size={16} />
+          </button>
+
+          <Divider />
+
+          {/* Headings */}
+          <button
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 1 }).run()}
+            className={toolbarButtonClass(editor?.isActive('heading', { level: 1 }) || false)}
+            type="button"
+            title="Heading 1"
+          >
+            H1
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+            className={toolbarButtonClass(editor?.isActive('heading', { level: 2 }) || false)}
+            type="button"
+            title="Heading 2"
+          >
+            H2
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+            className={toolbarButtonClass(editor?.isActive('heading', { level: 3 }) || false)}
+            type="button"
+            title="Heading 3"
+          >
+            H3
+          </button>
+
+          <Divider />
+
+          {/* Alignment */}
+          <button
+            onClick={() => editor?.chain().focus().setTextAlign('left').run()}
+            className={toolbarButtonClass(editor?.isActive({ textAlign: 'left' }) || false)}
+            type="button"
+            title="Align Left"
+          >
+            <AlignLeft size={16} />
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().setTextAlign('center').run()}
+            className={toolbarButtonClass(editor?.isActive({ textAlign: 'center' }) || false)}
+            type="button"
+            title="Align Center"
+          >
+            <AlignCenter size={16} />
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().setTextAlign('right').run()}
+            className={toolbarButtonClass(editor?.isActive({ textAlign: 'right' }) || false)}
+            type="button"
+            title="Align Right"
+          >
+            <AlignRight size={16} />
+          </button>
+
+          <Divider />
+
+          {/* Lists */}
+          <button
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+            className={toolbarButtonClass(editor?.isActive('bulletList') || false)}
+            type="button"
+            title="Bullet List"
+          >
+            <List size={16} />
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+            className={toolbarButtonClass(editor?.isActive('orderedList') || false)}
+            type="button"
+            title="Numbered List"
+          >
+            <ListOrdered size={16} />
+          </button>
+
+          <Divider />
+
+          {/* Block Formats */}
+          <button
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+            className={toolbarButtonClass(editor?.isActive('blockquote') || false)}
+            type="button"
+            title="Quote"
+          >
+            <Quote size={16} />
+          </button>
+          <button
+            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+            className={toolbarButtonClass(editor?.isActive('codeBlock') || false)}
+            type="button"
+            title="Code Block"
+          >
+            <Code size={16} />
+          </button>
+
+          <Divider />
+
+          {/* Media */}
+          <button
+            onClick={addImage}
+            className={toolbarButtonClass(false)}
+            type="button"
+            title="Insert Image"
+          >
+            <ImageIcon size={16} />
+          </button>
+          <button
+            onClick={addYoutubeVideo}
+            className={toolbarButtonClass(false)}
+            type="button"
+            title="Insert YouTube Video"
+          >
+            <YoutubeIcon size={16} />
+          </button>
+
+          <Divider />
+
+          {/* Clear Formatting */}
+          <button
+            onClick={() => editor?.chain().focus().clearNodes().unsetAllMarks().run()}
+            className={toolbarButtonClass(false)}
+            type="button"
+            title="Clear Formatting"
+          >
+            <X size={16} />
+          </button>
+        </div>
+      </div>
+      
+      {/* Editor Content */}
+      <EditorContent 
+        editor={editor} 
+        className="min-h-[200px] bg-white dark:bg-gray-800 text-gray-900 dark:text-white"
+      />
+    </div>
+  );
+};
 
 export const meta = () => {
   return [
@@ -375,13 +625,10 @@ const Blogs = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Description *
             </label>
-            <textarea
-              required
-              rows={6}
+            <TiptapEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(content) => setFormData({ ...formData, description: content })}
               placeholder="Enter blog description..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-vertical"
             />
           </div>
 
@@ -516,13 +763,10 @@ const Blogs = () => {
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Description *
             </label>
-            <textarea
-              required
-              rows={6}
+            <TiptapEditor
               value={formData.description}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              onChange={(content) => setFormData({ ...formData, description: content })}
               placeholder="Enter blog description..."
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-white resize-vertical"
             />
           </div>
 
@@ -674,7 +918,10 @@ const Blogs = () => {
               <div>
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">Description</label>
                 <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
-                  <p className="text-sm text-gray-900 dark:text-white whitespace-pre-wrap">{selectedBlog.description}</p>
+                  <div 
+                    className="prose prose-sm dark:prose-invert max-w-none text-gray-900 dark:text-white"
+                    dangerouslySetInnerHTML={{ __html: selectedBlog.description }}
+                  />
                 </div>
               </div>
               <div>
