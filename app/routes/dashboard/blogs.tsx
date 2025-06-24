@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Search, Eye, BookOpen, FileText, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Quote, Code, X, Youtube as YoutubeIcon } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, Edit, Trash2, Search, Eye, BookOpen, FileText, Image as ImageIcon, AlignLeft, AlignCenter, AlignRight, List, ListOrdered, Quote, Code, X, Youtube as YoutubeIcon, Loader2 } from "lucide-react";
 import Drawer from "~/components/Drawer";
 import CustomInput from "~/components/CustomInput";
 import DataTable, { type Column } from "~/components/DataTable";
@@ -12,6 +12,7 @@ import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
 import Image from '@tiptap/extension-image';
 import YoutubeExtension from '@tiptap/extension-youtube';
+import React from "react";
 
 // Custom Tiptap Editor Component
 const TiptapEditor = ({ value, onChange, placeholder }: { 
@@ -19,6 +20,10 @@ const TiptapEditor = ({ value, onChange, placeholder }: {
   onChange: (content: string) => void; 
   placeholder?: string;
 }) => {
+  const [isUploading, setIsUploading] = useState(false);
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
@@ -57,6 +62,7 @@ const TiptapEditor = ({ value, onChange, placeholder }: {
     p-1.5 rounded hover:bg-gray-200 dark:hover:bg-gray-600 
     ${isActive ? 'bg-gray-200 dark:bg-gray-600' : ''}
     text-gray-600 dark:text-gray-300
+    ${isUploading ? 'opacity-50 cursor-not-allowed' : ''}
   `;
 
   // Divider component
@@ -64,15 +70,66 @@ const TiptapEditor = ({ value, onChange, placeholder }: {
     <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1" />
   );
 
-  // Handle image insertion
-  const addImage = () => {
-    const url = window.prompt('Enter the URL of the image:');
-    if (url) {
-      editor?.chain().focus().setImage({ src: url }).run();
+  // Handle file upload
+  const handleFileUpload = async (file: File, type: 'image' | 'video') => {
+    try {
+      setIsUploading(true);
+      
+      const formData = new FormData();
+      formData.append('file', file);
+      
+      const response = await fetch('/api/blogs/upload-image', {
+        method: 'POST',
+        body: formData,
+      });
+      
+      const data = await response.json();
+      
+      if (data.success && data.url) {
+        if (type === 'image') {
+          editor?.chain().focus().setImage({ src: data.url }).run();
+        } else {
+          // For video, we'll insert it as an HTML5 video element
+          const videoHtml = `<video controls class="w-full aspect-video rounded-lg"><source src="${data.url}" type="${file.type}"></video>`;
+          editor?.chain().focus().insertContent(videoHtml).run();
+        }
+      } else {
+        errorToast(data.message || 'Failed to upload file');
+      }
+    } catch (err) {
+      errorToast('Failed to upload file');
+    } finally {
+      setIsUploading(false);
     }
   };
 
-  // Handle YouTube video insertion
+  // Handle file selection
+  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>, type: 'image' | 'video') => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Check file type
+      if (type === 'image' && !file.type.startsWith('image/')) {
+        errorToast('Please select an image file');
+        return;
+      }
+      if (type === 'video' && !file.type.startsWith('video/')) {
+        errorToast('Please select a video file');
+        return;
+      }
+      
+      // Check file size (10MB)
+      if (file.size > 10 * 1024 * 1024) {
+        errorToast('File size should be less than 10MB');
+        return;
+      }
+      
+      handleFileUpload(file, type);
+    }
+    // Reset the input
+    event.target.value = '';
+  };
+
+  // Handle YouTube video
   const addYoutubeVideo = () => {
     const url = window.prompt('Enter the URL of the YouTube video:');
     if (url) {
@@ -82,6 +139,22 @@ const TiptapEditor = ({ value, onChange, placeholder }: {
 
   return (
     <div className="border border-gray-300 dark:border-gray-600 rounded-lg overflow-hidden">
+      {/* Hidden file inputs */}
+      <input
+        ref={imageInputRef}
+        type="file"
+        accept="image/*"
+        onChange={(e) => handleFileSelect(e, 'image')}
+        className="hidden"
+      />
+      <input
+        ref={videoInputRef}
+        type="file"
+        accept="video/*"
+        onChange={(e) => handleFileSelect(e, 'video')}
+        className="hidden"
+      />
+
       {/* Toolbar */}
       <div className="bg-gray-100 dark:bg-gray-700 px-3 py-2 border-b border-gray-300 dark:border-gray-600">
         <div className="flex items-center flex-wrap gap-1">
@@ -219,18 +292,29 @@ const TiptapEditor = ({ value, onChange, placeholder }: {
 
           {/* Media */}
           <button
-            onClick={addImage}
+            onClick={() => !isUploading && imageInputRef.current?.click()}
             className={toolbarButtonClass(false)}
             type="button"
-            title="Insert Image"
+            title="Upload Image"
+            disabled={isUploading}
           >
-            <ImageIcon size={16} />
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <ImageIcon size={16} />}
+          </button>
+          <button
+            onClick={() => !isUploading && videoInputRef.current?.click()}
+            className={toolbarButtonClass(false)}
+            type="button"
+            title="Upload Video"
+            disabled={isUploading}
+          >
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <YoutubeIcon size={16} />}
           </button>
           <button
             onClick={addYoutubeVideo}
             className={toolbarButtonClass(false)}
             type="button"
             title="Insert YouTube Video"
+            disabled={isUploading}
           >
             <YoutubeIcon size={16} />
           </button>
@@ -347,6 +431,28 @@ const Blogs = () => {
         return;
       }
       
+      let imageUrl = null;
+      
+      // Handle image upload first if there's an image
+      if (formData.image) {
+        const imageForm = new FormData();
+        imageForm.append('file', formData.image);
+        
+        const uploadResponse = await fetch('/api/blogs/upload-image', {
+          method: 'POST',
+          body: imageForm,
+        });
+        
+        const uploadData = await uploadResponse.json();
+        
+        if (!uploadData.success) {
+          errorToast(uploadData.message || 'Failed to upload image');
+          return;
+        }
+        
+        imageUrl = uploadData.url;
+      }
+      
       const form = new FormData();
       form.append("name", formData.name);
       form.append("description", formData.description);
@@ -354,9 +460,9 @@ const Blogs = () => {
       form.append("admin", formData.admin);
       form.append("status", formData.status);
       
-      // Handle file upload
-      if (formData.image) {
-        form.append("image", formData.image);
+      // Append the image URL instead of the File object
+      if (imageUrl) {
+        form.append("image", imageUrl);
       }
       
       if (action === "edit" && selectedBlog) {

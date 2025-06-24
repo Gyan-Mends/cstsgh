@@ -197,7 +197,17 @@ export default function BlogDetailPage() {
                                     <div className="prose prose-lg max-w-none">
                                         <div 
                                             dangerouslySetInnerHTML={{ __html: blogPost.description }}
-                                            className="text-gray-700 leading-relaxed"
+                                            className="prose prose-lg prose-pink max-w-none dark:prose-invert
+                                                prose-headings:font-bold prose-h1:text-3xl prose-h2:text-2xl prose-h3:text-xl
+                                                prose-p:text-gray-700 dark:prose-p:text-gray-300
+                                                prose-a:text-pink-600 hover:prose-a:text-pink-700
+                                                prose-strong:text-gray-900 dark:prose-strong:text-white
+                                                prose-blockquote:border-pink-500
+                                                prose-img:rounded-lg prose-img:shadow-md
+                                                prose-video:rounded-lg prose-video:shadow-md
+                                                prose-pre:bg-gray-800 prose-pre:text-gray-100
+                                                prose-code:text-pink-600 dark:prose-code:text-pink-400
+                                                prose-ul:list-disc prose-ol:list-decimal"
                                         />
                                     </div>
                                     

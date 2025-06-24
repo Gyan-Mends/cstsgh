@@ -134,7 +134,12 @@ export default function BlogPage() {
                                                     <h3 className="font-bold text-lg text-gray-900 group-hover:text-pink-600 transition-colors mb-2">
                                                         {blog.name}
                                                     </h3>
-                                                    <p className="text-gray-600 line-clamp-3 mb-4">{blog.description}</p>
+                                                    <div 
+                                                        className="prose prose-sm text-gray-600 line-clamp-3 mb-4"
+                                                        dangerouslySetInnerHTML={{ 
+                                                            __html: blog.description.replace(/<[^>]*>/g, '').substring(0, 150) + '...'
+                                                        }}
+                                                    />
                                                     
                                                     <div className="flex items-center justify-between pt-4 border-t border-gray-100">
                                                         <div className="flex items-center text-sm text-gray-500">

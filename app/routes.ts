@@ -41,6 +41,7 @@ export default [
   route("/api/users", "routes/api/users.ts"),
   route("/api/categories", "routes/api/categories.ts"),
   route("/api/blogs", "routes/api/blogs.ts"),
+  route("/api/blogs/upload-image", "routes/api/blogs/upload-image.ts"),
   route("/api/training", "routes/api/training.ts"),
   route("/api/training-types", "routes/api/training-types.ts"),
   route("/api/events", "routes/api/events.ts"),
